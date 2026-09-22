@@ -1,0 +1,45 @@
+.app-page-container {
+  width: min(100%, 80rem);
+  margin: 0 auto;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.app-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-section-header__title {
+  margin: 0;
+  color: #111827;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.app-section-header__description {
+  max-width: 48rem;
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.app-section-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .app-page-container {
+    padding: 1rem;
+  }
+
+  .app-section-header {
+    flex-direction: column;
+  }
+}
