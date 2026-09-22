@@ -1,0 +1,48 @@
+.app-state {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #ffffff;
+}
+
+.app-state h2,
+.app-state p {
+  margin: 0;
+}
+
+.app-state--loading {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.app-state--error {
+  border-color: #fecaca;
+}
+
+.app-state__spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #d1d5db;
+  border-top-color: #1d4ed8;
+  border-radius: 50%;
+  animation: app-state-spin 800ms linear infinite;
+}
+
+.app-state__action {
+  margin-top: 0.25rem;
+}
+
+@keyframes app-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-state__spinner {
+    animation: none;
+  }
+}
