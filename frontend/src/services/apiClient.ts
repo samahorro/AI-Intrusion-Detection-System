@@ -27,7 +27,11 @@ export class ApiClientError extends Error {
 }
 
 export class ApiClient {
-  constructor(private readonly transport: ApiTransport) {}
+  private readonly transport: ApiTransport;
+
+  constructor(transport: ApiTransport) {
+    this.transport = transport;
+  }
 
   get<T>(
     path: string,

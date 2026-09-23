@@ -1,8 +1,11 @@
+import DeviceTable from "../components/monitoring/DeviceTable";
 import MetricCard from "../components/monitoring/MetricCard";
 import StatusBadge from "../components/monitoring/StatusBadge";
 import ThreatBadge from "../components/monitoring/ThreatBadge";
+
 import {
   alerts,
+  devices,
   systemStatus,
 } from "../data/mockData";
 
@@ -29,6 +32,12 @@ export default function Dashboard() {
           title="Blocked IPs"
           value={systemStatus.blockedIPs}
         />
+      </section>
+
+      <section className="devices-section">
+        <h2>Monitored Devices</h2>
+
+        <DeviceTable devices={devices} />
       </section>
 
       <section>
