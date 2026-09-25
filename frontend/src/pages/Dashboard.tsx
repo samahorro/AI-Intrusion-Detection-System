@@ -2,6 +2,7 @@ import DeviceTable from "../components/monitoring/DeviceTable";
 import MetricCard from "../components/monitoring/MetricCard";
 import StatusBadge from "../components/monitoring/StatusBadge";
 import ThreatBadge from "../components/monitoring/ThreatBadge";
+import ScanNetworkControl from "../components/monitoring/ScanNetworkControl";
 
 import {
   alerts,
@@ -17,6 +18,11 @@ export default function Dashboard() {
       <section className="system-status">
         <h2>System Status</h2>
         <StatusBadge status={systemStatus.status} />
+      </section>
+
+      <section>
+        <h2>Network Scan</h2>
+        <ScanNetworkControl />
       </section>
 
       <section className="metrics-grid">
