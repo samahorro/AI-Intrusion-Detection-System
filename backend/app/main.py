@@ -1,23 +1,44 @@
+import os
+
 from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 
-app = FastAPI(
-    title="AI Intrusion Detection System API",
-    description="Backend API for the AI-Powered Intrusion Detection System.",
-    version="0.1.0",
-)
+from .auth.routes import router as auth_router
+from .database import init_db
 
 
-@app.get("/")
-def root():
-    return {
-        "message": "AI Intrusion Detection System Backend",
-        "status": "running",
-    }
+def create_app(
+    initialize_database: bool = True,
+):
+    """Create the FastAPI application."""
+
+    app = FastAPI(
+        title="AI Intrusion Detection System API",
+        version="0.2.0",
+    )
+
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=os.getenv(
+            "SECRET_KEY",
+            "development-only-change-me",
+        ),
+        same_site="lax",
+        https_only=False,
+    )
+
+    app.include_router(auth_router)
+
+    @app.get("/health")
+    def health():
+        return {
+            "status": "ok",
+        }
+
+    if initialize_database:
+        init_db()
+
+    return app
 
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok",
-        "service": "AI-IDS Backend",
-    }
+app = create_app()

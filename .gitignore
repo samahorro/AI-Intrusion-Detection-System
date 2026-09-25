@@ -49,3 +49,5 @@ ml/data/processed/*
 # ============================================
 *.log
 *.tmp
+# Local SQLite databases
+*.db

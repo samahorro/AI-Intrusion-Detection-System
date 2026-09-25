@@ -1,23 +1,16 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from backend.app.main import app
 
 
 client = TestClient(app)
 
 
-def test_health_check():
+def test_health():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "service": "AI-IDS Backend",
-    }
 
+    data = response.json()
 
-def test_root():
-    response = client.get("/")
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "running"
+    assert data["status"] == "ok"
