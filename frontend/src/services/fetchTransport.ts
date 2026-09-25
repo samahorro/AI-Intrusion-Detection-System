@@ -15,9 +15,11 @@ export type FetchTransportOptions = {
 };
 
 export class FetchTransport implements ApiTransport {
-  constructor(
-    private readonly options: FetchTransportOptions,
-  ) {}
+  private readonly options: FetchTransportOptions;
+
+  constructor(options: FetchTransportOptions) {
+    this.options = options;
+  }
 
   async request<T>(
     request: ApiRequest,

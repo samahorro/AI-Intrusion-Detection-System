@@ -104,3 +104,37 @@ body {
   display: grid;
   gap: 1rem;
 }
+
+.devices-section {
+  margin-top: 2rem;
+}
+
+.device-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.device-table th,
+.device-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.device-table th {
+  font-weight: 600;
+}
+
+.device-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.device-table-empty {
+  padding: 1rem 0;
+}
