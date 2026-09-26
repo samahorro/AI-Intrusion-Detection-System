@@ -1,0 +1,51 @@
+name: Project CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  backend-validation:
+    name: Backend Authentication Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      - name: Create build identifier
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          BUILD_ID="build-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+
+          echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_ENV"
+          echo "Build Identifier: $BUILD_ID"
+
+      - name: Verify backend imports
+        run: |
+          python -c "from backend.app.main import app; print('Backend import successful')"
+
+      - name: Run backend tests
+        run: |
+          python -m pytest backend/tests -v
