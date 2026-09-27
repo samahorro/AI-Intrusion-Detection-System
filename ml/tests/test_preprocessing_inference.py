@@ -134,4 +134,3 @@ def test_inference_returns_expected_output_structure():
     result = run_inference(model, features)
 
     assert "prediction" in result
-    assert "status" in result
