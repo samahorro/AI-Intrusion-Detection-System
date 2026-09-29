@@ -22,3 +22,5 @@ export {
 export type {
   MockHandler,
 } from "./mockTransport";
+
+export * from "./monitoringAdapter";
