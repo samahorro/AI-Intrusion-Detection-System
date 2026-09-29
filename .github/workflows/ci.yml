@@ -46,6 +46,13 @@ jobs:
         run: |
           python -c "from backend.app.main import app; print('Backend import successful')"
 
-      - name: Run backend tests
+      - name: Run backend lint checks
         run: |
-          python -m pytest backend/tests -v
+          python -m ruff check backend
+
+      - name: Run backend tests with coverage
+        run: |
+          python -m pytest backend/tests -v \
+            --cov=backend/app \
+            --cov-report=term-missing \
+            --cov-fail-under=80

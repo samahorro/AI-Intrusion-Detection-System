@@ -18,7 +18,6 @@ from .validation import (
     verify_password,
 )
 
-
 router = APIRouter(
     prefix="/auth",
     tags=["authentication"],
