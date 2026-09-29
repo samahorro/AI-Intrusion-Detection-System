@@ -9,6 +9,9 @@ export const systemStatus: SystemStatus = {
   devices: 4,
   threats: 2,
   blockedIPs: 1,
+  activeAlerts: 2,
+  devicesOnline: 3,
+  lastScan: "2 minutes ago",
 };
 
 export const alerts: Alert[] = [
