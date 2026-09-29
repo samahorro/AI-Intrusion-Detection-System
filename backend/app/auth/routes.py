@@ -146,6 +146,38 @@ def login(
         "user": user.to_dict(),
     }
 
+@router.get("/me")
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Return the currently authenticated user."""
+
+    user_id = request.session.get("user_id")
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    if user is None:
+        request.session.clear()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+        )
+
+    return {
+        "user": user.to_dict(),
+    }
 
 @router.post("/logout")
 def logout(request: Request):
