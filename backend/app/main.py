@@ -5,6 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .auth.routes import router as auth_router
 from .database import init_db
+from .detection.routes import router as detection_router
 
 
 def create_app(
@@ -14,7 +15,7 @@ def create_app(
 
     app = FastAPI(
         title="AI Intrusion Detection System API",
-        version="0.2.0",
+        version="0.3.0",
     )
 
     app.add_middleware(
@@ -28,6 +29,7 @@ def create_app(
     )
 
     app.include_router(auth_router)
+    app.include_router(detection_router)
 
     @app.get("/health")
     def health():
