@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .auth.routes import router as auth_router
@@ -16,6 +17,19 @@ def create_app(
     app = FastAPI(
         title="AI Intrusion Detection System API",
         version="0.3.0",
+    )
+
+    frontend_origin = os.getenv(
+        "FRONTEND_ORIGIN",
+        "http://localhost:5173",
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[frontend_origin],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.add_middleware(

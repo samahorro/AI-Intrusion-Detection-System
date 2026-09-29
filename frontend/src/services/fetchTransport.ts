@@ -44,6 +44,7 @@ export class FetchTransport implements ApiTransport {
       {
         method: request.method,
         headers,
+        credentials: "include",
         body:
           request.body === undefined
             ? undefined
