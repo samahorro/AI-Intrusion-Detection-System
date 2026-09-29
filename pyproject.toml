@@ -1,2 +1,3 @@
 [tool.ruff.lint.per-file-ignores]
 "backend/app/auth/routes.py" = ["B008"]
+"backend/app/detection/routes.py" = ["B008"]
