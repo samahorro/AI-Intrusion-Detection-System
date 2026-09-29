@@ -4,7 +4,6 @@ from sqlalchemy import inspect
 from backend.app.auth.validation import verify_password
 from backend.app.models.user import User
 
-
 VALID_PASSWORD = "ValidPassword123!"
 
 
