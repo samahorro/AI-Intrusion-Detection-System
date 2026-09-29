@@ -18,3 +18,12 @@ export type {
   UserSummary,
   UserUpdate,
 } from "./user";
+
+export type {
+  Alert,
+  Device,
+  MonitoringState,
+  SystemState,
+  SystemStatus,
+  ThreatSeverity,
+} from "./monitoring";
