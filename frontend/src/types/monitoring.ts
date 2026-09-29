@@ -21,6 +21,9 @@ export interface SystemStatus {
   devices: number;
   threats: number;
   blockedIPs: number;
+  activeAlerts: number;
+  devicesOnline: number;
+  lastScan: string;
 }
 
 export interface Alert {

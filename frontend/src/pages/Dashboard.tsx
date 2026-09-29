@@ -38,13 +38,30 @@ export default function Dashboard() {
           title="Devices"
           value={systemStatus.devices}
         />
+
+        <MetricCard
+          title="Devices Online"
+          value={systemStatus.devicesOnline}
+        />
+
         <MetricCard
           title="Threats"
           value={systemStatus.threats}
         />
+
+        <MetricCard
+          title="Active Alerts"
+          value={systemStatus.activeAlerts}
+        />
+
         <MetricCard
           title="Blocked IPs"
           value={systemStatus.blockedIPs}
+        />
+
+        <MetricCard
+          title="Last Scan"
+          value={systemStatus.lastScan}
         />
       </section>
 
