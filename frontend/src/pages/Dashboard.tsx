@@ -3,6 +3,7 @@ import MetricCard from "../components/monitoring/MetricCard";
 import StatusBadge from "../components/monitoring/StatusBadge";
 import ThreatBadge from "../components/monitoring/ThreatBadge";
 import ScanNetworkControl from "../components/monitoring/ScanNetworkControl";
+import MonitoringStateDisplay from "../components/monitoring/MonitoringStateDisplay";
 
 import {
   alerts,
@@ -11,6 +12,8 @@ import {
 } from "../data/mockData";
 
 export default function Dashboard() {
+  const monitoringState = "monitoring";
+
   return (
     <main className="page">
       <h1>AI-IDS Dashboard</h1>
@@ -18,6 +21,11 @@ export default function Dashboard() {
       <section className="system-status">
         <h2>System Status</h2>
         <StatusBadge status={systemStatus.status} />
+      </section>
+
+      <section>
+        <h2>Monitoring Status</h2>
+        <MonitoringStateDisplay state={monitoringState} />
       </section>
 
       <section>

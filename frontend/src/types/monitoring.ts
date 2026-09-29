@@ -9,6 +9,13 @@ export type SystemState =
   | "offline"
   | "scanning";
 
+  export type MonitoringState =
+  | "idle"
+  | "loading"
+  | "scanning"
+  | "monitoring"
+  | "error";
+
 export interface SystemStatus {
   status: SystemState;
   devices: number;
