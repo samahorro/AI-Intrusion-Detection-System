@@ -30,3 +30,9 @@ Make sure the following are installed:
 git clone <repository-url>
 cd AI-Intrusion-Detection-System
 
+
+## CI/CD Documentation
+
+The project CI/CD workflows, local validation commands, and troubleshooting instructions are documented in:
+
+- [CI/CD Workflow and Local Validation Guide](docs/ci-cd-workflow.md)
