@@ -1,10 +1,25 @@
 import os
 import subprocess
+import sys
 from typing import Any
 
-DEFAULT_TSHARK_PATH = (
-    "/Applications/Wireshark.app/Contents/MacOS/tshark"
-)
+if os.name == "nt":
+    DEFAULT_TSHARK_PATH = (
+        r"C:\Program Files\Wireshark\tshark.exe"
+    )
+elif sys.platform == "darwin":
+    DEFAULT_TSHARK_PATH = (
+        "/Applications/Wireshark.app/Contents/MacOS/tshark"
+    )
+else:
+    DEFAULT_TSHARK_PATH = "tshark"
+
+
+PROTOCOL_MAP = {
+    "1": "ICMP",
+    "6": "TCP",
+    "17": "UDP",
+}
 
 
 def capture_packets(
@@ -15,7 +30,7 @@ def capture_packets(
     Capture network packet metadata using TShark.
 
     Packet payload contents are not captured. Only metadata required
-    for IDS flow processing is returned.
+    for backend network event and IDS processing is returned.
     """
 
     if packet_count <= 0:
@@ -52,6 +67,8 @@ def capture_packets(
         "-e",
         "ip.dst",
         "-e",
+        "ip.proto",
+        "-e",
         "frame.len",
         "-e",
         "tcp.srcport",
@@ -71,14 +88,17 @@ def capture_packets(
             check=True,
             timeout=30,
         )
+
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"TShark was not found at {tshark_path}"
         ) from exc
+
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(
             "TShark capture timed out"
         ) from exc
+
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(
             f"TShark capture failed: {exc.stderr.strip()}"
@@ -89,13 +109,14 @@ def capture_packets(
     for line in result.stdout.splitlines():
         fields = line.split("|")
 
-        if len(fields) != 8:
+        if len(fields) != 9:
             continue
 
         (
             timestamp,
             source_ip,
             destination_ip,
+            protocol_number,
             frame_length,
             tcp_source_port,
             tcp_destination_port,
@@ -112,8 +133,14 @@ def capture_packets(
             continue
 
         try:
-            parsed_timestamp = float(timestamp)
-            parsed_length = int(frame_length)
+            parsed_timestamp = float(
+                timestamp
+            )
+
+            parsed_length = int(
+                frame_length
+            )
+
         except ValueError:
             continue
 
@@ -129,11 +156,17 @@ def capture_packets(
             or None
         )
 
+        protocol = PROTOCOL_MAP.get(
+            protocol_number,
+            protocol_number or "UNKNOWN",
+        )
+
         packets.append(
             {
                 "timestamp": parsed_timestamp,
                 "source_ip": source_ip,
                 "destination_ip": destination_ip,
+                "protocol": protocol,
                 "source_port": (
                     int(source_port)
                     if source_port
@@ -145,6 +178,7 @@ def capture_packets(
                     else None
                 ),
                 "length": parsed_length,
+                "payload_size": parsed_length,
             }
         )
 
