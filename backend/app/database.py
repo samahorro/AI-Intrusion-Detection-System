@@ -44,7 +44,8 @@ def get_db():
 def init_db():
     """Create all database tables."""
 
-    # Import models before create_all().
+    # Import models only after Base has been created.
+    from .models.network_event import NetworkEvent  # noqa: F401
     from .models.user import User  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
