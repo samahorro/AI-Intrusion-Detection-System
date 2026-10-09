@@ -10,7 +10,7 @@ class FakeProcess:
         self.returncode = None
         self.terminated = False
         self.killed = False
-
+        self.stdout = None
     def poll(self):
         return self.returncode
 
