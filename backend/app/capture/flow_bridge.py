@@ -3,10 +3,11 @@
 The sliding bounded window is NOT a production flow/session tracker. Protocol is
 kept separate; current repository's aggregate_packets() keys only on endpoints.
 """
+import math
 from collections import deque
 from datetime import datetime
 from threading import RLock
-import math
+
 from backend.app.capture.flow_aggregator import aggregate_packets
 from ml.preprocessing.flow_preprocessor import REQUIRED_FEATURES, preprocess_flow
 

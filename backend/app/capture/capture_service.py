@@ -4,8 +4,8 @@ import threading
 from collections import Counter, deque
 from datetime import datetime, timezone
 
-from .interface_service import get_tshark_path, resolve_capture_interface
 from .flow_bridge import FlowBridge
+from .interface_service import get_tshark_path, resolve_capture_interface
 
 
 class CaptureService:
