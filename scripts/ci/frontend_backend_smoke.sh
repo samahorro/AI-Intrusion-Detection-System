@@ -22,6 +22,7 @@ DATABASE_FILE="${TMPDIR:-/tmp}/ai-ids-smoke.db"
 
 BACKEND_PID=""
 FRONTEND_PID=""
+COOKIE_FILE=""
 
 cleanup() {
   local exit_code=$?
@@ -32,6 +33,10 @@ cleanup() {
 
   if [[ -n "${BACKEND_PID}" ]]; then
     kill "${BACKEND_PID}" 2>/dev/null || true
+  fi
+
+  if [[ -n "${COOKIE_FILE}" ]]; then
+    rm -f "${COOKIE_FILE}"
   fi
 
   rm -f "${DATABASE_FILE}"
@@ -219,6 +224,34 @@ if user.get("username") != expected_username:
 print("Login contract validated.")
 PY
 
+echo "=== Verifying authenticated session ==="
+
+ME_RESPONSE="$(
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    -b "${COOKIE_FILE}" \
+    "${BACKEND_URL}/auth/me"
+)"
+
+python3 - "${ME_RESPONSE}" "${SMOKE_USERNAME}" <<'PY'
+import json
+import sys
+
+response = json.loads(sys.argv[1])
+expected_username = sys.argv[2]
+
+user = response.get("user", {})
+
+if user.get("username") != expected_username:
+    raise SystemExit(
+        f"Unexpected current-user response: {response}"
+    )
+
+print("Authenticated session validated.")
+PY
+
 LOGOUT_RESPONSE="$(
   curl \
     --fail \
@@ -228,8 +261,6 @@ LOGOUT_RESPONSE="$(
     -X POST \
     "${BACKEND_URL}/auth/logout"
 )"
-
-rm -f "${COOKIE_FILE}"
 
 python3 - "${LOGOUT_RESPONSE}" <<'PY'
 import json
@@ -244,6 +275,24 @@ if response.get("message") != "Logout successful.":
 
 print("Logout contract validated.")
 PY
+
+echo "=== Verifying session is cleared ==="
+
+POST_LOGOUT_STATUS="$(
+  curl \
+    --silent \
+    --output /dev/null \
+    --write-out "%{http_code}" \
+    -b "${COOKIE_FILE}" \
+    "${BACKEND_URL}/auth/me"
+)"
+
+if [[ "${POST_LOGOUT_STATUS}" != "401" ]]; then
+  echo "Expected /auth/me to return 401 after logout; got ${POST_LOGOUT_STATUS}." >&2
+  exit 1
+fi
+
+echo "Session removal validated."
 
 echo
 echo "Frontend-backend smoke test passed."

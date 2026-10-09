@@ -9,12 +9,13 @@ import type { SessionStore } from "./sessionStore";
 
 import { AuthServiceError } from "./AuthServiceError";
 
-const MOCK_EMAIL = "demo@example.com";
+const MOCK_USERNAME = "demo";
 const MOCK_PASSWORD = "demo-password";
 
 const MOCK_USER: AuthenticatedUser = {
   id: "mock-user-001",
-  email: MOCK_EMAIL,
+  username: MOCK_USERNAME,
+  email: "demo@example.com",
   displayName: "Development User",
   role: "mock-user",
   permissions: [],
@@ -38,16 +39,16 @@ export class MockAuthService implements AuthService {
   ): Promise<AuthSession> {
     await wait(400);
 
-    const normalizedEmail =
-      credentials.email.trim().toLowerCase();
+    const normalizedUsername =
+      credentials.username.trim();
 
     if (
-      normalizedEmail !== MOCK_EMAIL ||
+      normalizedUsername !== MOCK_USERNAME ||
       credentials.password !== MOCK_PASSWORD
     ) {
       throw new AuthServiceError(
         "INVALID_CREDENTIALS",
-        "The email or password is incorrect.",
+        "The username or password is incorrect.",
       );
     }
 

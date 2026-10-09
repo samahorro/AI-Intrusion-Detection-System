@@ -10,7 +10,7 @@ import {
 } from "../../components/base";
 
 export type LoginFormValues = {
-  email: string;
+  username: string;
   password: string;
 };
 
@@ -24,12 +24,30 @@ export type LoginFormProps = {
 };
 
 type LoginFormErrors = {
-  email?: string;
+  username?: string;
   password?: string;
 };
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function validateUsername(
+  value: string,
+): string | undefined {
+  if (!value) {
+    return "Username is required.";
+  }
+
+  if (value.length < 3) {
+    return "Username must be at least 3 characters.";
+  }
+
+  if (value.length > 50) {
+    return "Username must be 50 characters or fewer.";
+  }
+
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+    return "Username may contain only letters, numbers, underscores, and hyphens.";
+  }
+
+  return undefined;
 }
 
 export function LoginForm({
@@ -38,7 +56,7 @@ export function LoginForm({
   errorMessage,
   onClearError,
 }: LoginFormProps) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [errors, setErrors] =
@@ -46,14 +64,10 @@ export function LoginForm({
 
   function validate(): LoginFormErrors {
     const nextErrors: LoginFormErrors = {};
-    const normalizedEmail = email.trim();
+    const normalizedUsername = username.trim();
 
-    if (!normalizedEmail) {
-      nextErrors.email = "Email is required.";
-    } else if (!isValidEmail(normalizedEmail)) {
-      nextErrors.email =
-        "Enter a valid email address.";
-    }
+    nextErrors.username =
+      validateUsername(normalizedUsername);
 
     if (!password) {
       nextErrors.password =
@@ -72,14 +86,14 @@ export function LoginForm({
     setErrors(nextErrors);
 
     if (
-      nextErrors.email ||
+      nextErrors.username ||
       nextErrors.password
     ) {
       return;
     }
 
     await onSubmit({
-      email: email.trim(),
+      username: username.trim(),
       password,
     });
   }
@@ -100,32 +114,32 @@ export function LoginForm({
       ) : null}
 
       <FormField
-        id="login-email"
-        label="Email"
-        error={errors.email}
+        id="login-username"
+        label="Username"
+        error={errors.username}
         required
       >
         <Input
-          id="login-email"
-          name="email"
-          type="email"
-          value={email}
-          autoComplete="email"
-          placeholder="you@example.com"
+          id="login-username"
+          name="username"
+          type="text"
+          value={username}
+          autoComplete="username"
+          placeholder="your-username"
           disabled={isSubmitting}
-          hasError={Boolean(errors.email)}
+          hasError={Boolean(errors.username)}
           aria-describedby={
-            errors.email
-              ? "login-email-error"
+            errors.username
+              ? "login-username-error"
               : undefined
           }
           onChange={(event) => {
-            setEmail(event.target.value);
+            setUsername(event.target.value);
 
-            if (errors.email) {
+            if (errors.username) {
               setErrors((current) => ({
                 ...current,
-                email: undefined,
+                username: undefined,
               }));
             }
 

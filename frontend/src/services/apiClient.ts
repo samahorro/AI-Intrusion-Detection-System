@@ -17,12 +17,22 @@ export class ApiClientError extends Error {
     status: number,
     payload: ApiErrorPayload = {},
   ) {
-    super(payload.message ?? `Request failed with status ${status}`);
+    const detailMessage =
+      typeof payload.detail === "string"
+        ? payload.detail
+        : undefined;
+
+    super(
+      payload.message ??
+        detailMessage ??
+        `Request failed with status ${status}`,
+    );
 
     this.name = "ApiClientError";
     this.status = status;
     this.code = payload.code;
-    this.details = payload.details;
+    this.details =
+      payload.details ?? payload.detail;
   }
 }
 

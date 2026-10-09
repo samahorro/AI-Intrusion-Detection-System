@@ -1,0 +1,36 @@
+import type { PropsWithChildren } from "react";
+import {
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
+import { LoadingState } from "../../components/states";
+
+import { useAuth } from "./useAuth";
+
+export function ProtectedRoute({
+  children,
+}: PropsWithChildren) {
+  const { state } = useAuth();
+  const location = useLocation();
+
+  if (state.status === "loading") {
+    return (
+      <LoadingState
+        message="Checking your AI-IDS session..."
+      />
+    );
+  }
+
+  if (state.status === "anonymous") {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
+  }
+
+  return children;
+}
