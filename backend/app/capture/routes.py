@@ -30,6 +30,11 @@ def get_stats():
     return capture_service.get_stats()
 
 
+@router.get("/flows")
+def get_flow_preview():
+    return capture_service.flow_bridge.snapshot()
+
+
 @router.post("/start")
 def start_capture(request: StartCaptureRequest):
     try:

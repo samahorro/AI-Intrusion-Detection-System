@@ -5,6 +5,7 @@ from collections import Counter, deque
 from datetime import datetime, timezone
 
 from .interface_service import get_tshark_path, resolve_capture_interface
+from .flow_bridge import FlowBridge
 
 
 class CaptureService:
@@ -13,6 +14,7 @@ class CaptureService:
         self.interface = None
         self._lock = threading.RLock()
         self._generation = 0
+        self.flow_bridge = FlowBridge()
         self._reset_stats()
 
     def _reset_stats(self):
@@ -57,6 +59,7 @@ class CaptureService:
             self.process = process
             self.interface = interface
             self._reset_stats()
+            self.flow_bridge.reset()
             if process.stdout is not None:
                 threading.Thread(
                     target=self._read_packets, args=(process, generation),
@@ -104,6 +107,7 @@ class CaptureService:
                     if source:
                         self.source_ips[source] += 1
                     self.recent_packets.appendleft(packet)
+                    self.flow_bridge.add_packet(packet)
                     self.last_packet_at = timestamp
         except (OSError, UnicodeError) as exc:
             with self._lock:
