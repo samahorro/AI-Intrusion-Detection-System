@@ -1,9 +1,6 @@
 
 """
-Manual CIC-IDS2017 dataset preprocessing validation.
-
-Sprint 3 - TEST-02
-Jira: KAN-119
+Manual CIC-IDS2017 dataset preprocessing validation,.
 
 Run this script using a local CIC-IDS2017 CSV file.
 """
