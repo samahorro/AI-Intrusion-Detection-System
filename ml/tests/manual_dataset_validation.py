@@ -1,10 +1,3 @@
-
-"""
-Manual CIC-IDS2017 dataset preprocessing validation,.
-
-Run this script using a local CIC-IDS2017 CSV file.
-"""
-
 import argparse
 from pathlib import Path
 
