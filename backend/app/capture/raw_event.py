@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -26,13 +26,13 @@ def _format_timestamp(
     parsed_timestamp = float(timestamp)
 
     return (
-        datetime.fromtimestamp(
-            parsed_timestamp,
-            tz=timezone.utc,
-        )
-        .isoformat()
-        .replace("+00:00", "Z")
+    datetime.fromtimestamp(
+        parsed_timestamp,
+        tz=UTC,
     )
+    .isoformat()
+    .replace("+00:00", "Z")
+)
 
 
 def _determine_direction(
