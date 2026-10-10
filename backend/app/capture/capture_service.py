@@ -2,7 +2,7 @@
 import subprocess
 import threading
 from collections import Counter, deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .flow_bridge import FlowBridge
 from .interface_service import get_tshark_path, resolve_capture_interface
@@ -78,8 +78,8 @@ class CaptureService:
                 try:
                     length = int(size)
                     timestamp = datetime.fromtimestamp(
-                        float(epoch), tz=timezone.utc
-                    ).isoformat()
+    float(epoch), tz=UTC
+).isoformat()
                 except (ValueError, OverflowError, OSError):
                     continue
                 if tcp_source or tcp_dest:
