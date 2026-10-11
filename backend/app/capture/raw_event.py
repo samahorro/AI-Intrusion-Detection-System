@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -28,7 +28,7 @@ def _format_timestamp(
     return (
         datetime.fromtimestamp(
             parsed_timestamp,
-            tz=UTC,
+            tz=timezone.utc,
         )
         .isoformat()
         .replace("+00:00", "Z")
