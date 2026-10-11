@@ -132,18 +132,6 @@ def capture_packets(
         ):
             continue
 
-        try:
-            parsed_timestamp = float(
-                timestamp
-            )
-
-            parsed_length = int(
-                frame_length
-            )
-
-        except ValueError:
-            continue
-
         source_port = (
             tcp_source_port
             or udp_source_port
@@ -156,6 +144,30 @@ def capture_packets(
             or None
         )
 
+        try:
+            parsed_timestamp = float(
+                timestamp
+            )
+
+            parsed_length = int(
+                frame_length
+            )
+
+            parsed_source_port = (
+                int(source_port)
+                if source_port
+                else None
+            )
+
+            parsed_destination_port = (
+                int(destination_port)
+                if destination_port
+                else None
+            )
+
+        except ValueError:
+            continue
+
         protocol = PROTOCOL_MAP.get(
             protocol_number,
             protocol_number or "UNKNOWN",
@@ -167,16 +179,8 @@ def capture_packets(
                 "source_ip": source_ip,
                 "destination_ip": destination_ip,
                 "protocol": protocol,
-                "source_port": (
-                    int(source_port)
-                    if source_port
-                    else None
-                ),
-                "destination_port": (
-                    int(destination_port)
-                    if destination_port
-                    else None
-                ),
+                "source_port": parsed_source_port,
+                "destination_port": parsed_destination_port,
                 "length": parsed_length,
                 "payload_size": parsed_length,
             }

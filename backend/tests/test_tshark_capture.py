@@ -236,3 +236,33 @@ def test_tshark_failure_raises_runtime_error(
             interface="en0",
             packet_count=5,
         )
+
+def test_capture_packets_skips_malformed_port_values(
+    monkeypatch,
+):
+    output = (
+        "100.0|10.0.0.1|8.8.8.8|6|100|bad-port|443||\n"
+        "101.0|10.0.0.1|8.8.8.8|6|120|50000|443||\n"
+    )
+
+    completed_process = subprocess.CompletedProcess(
+        args=[],
+        returncode=0,
+        stdout=output,
+        stderr="",
+    )
+
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: completed_process,
+    )
+
+    packets = capture_packets(
+        interface="en0",
+        packet_count=2,
+    )
+
+    assert len(packets) == 1
+    assert packets[0]["source_port"] == 50000
+    assert packets[0]["destination_port"] == 443
