@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -7,7 +7,7 @@ from backend.app.capture.flow_bridge import FlowBridge
 
 def packet(at, source, destination, sp, dp, length, protocol='TCP'):
     return {
-        'timestamp': datetime.fromtimestamp(at, timezone.utc).isoformat(),
+        'timestamp': datetime.fromtimestamp(at, UTC).isoformat(),
         'source_ip': source, 'destination_ip': destination,
         'source_port': str(sp), 'destination_port': str(dp),
         'length': length, 'protocol': protocol,
