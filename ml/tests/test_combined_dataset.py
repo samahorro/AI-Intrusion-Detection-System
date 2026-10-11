@@ -54,9 +54,11 @@ MODEL_FEATURES = [
 
 @pytest.fixture(scope="module")
 def combined_dataset():
-    """Load the combined dataset only once for this test module."""
     if not COMBINED_PATH.is_file():
-        pytest.fail(f"Combined dataset not found: {COMBINED_PATH}")
+        pytest.skip(
+            "Full CICIDS2017 dataset is unavailable. "
+            "Run full-dataset validation locally."
+        )
 
     return pd.read_csv(COMBINED_PATH, low_memory=False)
 
