@@ -258,6 +258,7 @@ LOGOUT_RESPONSE="$(
     --silent \
     --show-error \
     -b "${COOKIE_FILE}" \
+    -c "${COOKIE_FILE}" \
     -X POST \
     "${BACKEND_URL}/auth/logout"
 )"
