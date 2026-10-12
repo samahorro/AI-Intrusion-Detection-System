@@ -16,11 +16,10 @@ function isAuthSession(value: unknown): value is AuthSession {
   const session = value as Partial<AuthSession>;
 
   return (
-    typeof session.accessToken === "string" &&
-    typeof session.expiresAt === "string" &&
     Boolean(session.user) &&
     typeof session.user?.id === "string" &&
-    typeof session.user?.email === "string"
+    typeof session.user?.username === "string" &&
+    typeof session.user?.displayName === "string"
   );
 }
 
@@ -45,15 +44,17 @@ export class BrowserSessionStore implements SessionStore {
         return null;
       }
 
-      const expiration =
-        new Date(parsed.expiresAt).getTime();
+      if (parsed.expiresAt) {
+        const expiration =
+          new Date(parsed.expiresAt).getTime();
 
-      if (
-        Number.isNaN(expiration) ||
-        expiration <= Date.now()
-      ) {
-        this.clear();
-        return null;
+        if (
+          Number.isNaN(expiration) ||
+          expiration <= Date.now()
+        ) {
+          this.clear();
+          return null;
+        }
       }
 
       return parsed;

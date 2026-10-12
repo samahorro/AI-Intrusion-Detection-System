@@ -36,7 +36,7 @@ describe("LoginForm", () => {
 
     expect(
       await screen.findByText(
-        "Email is required.",
+        "Username is required.",
       ),
     ).toBeInTheDocument();
 
@@ -49,7 +49,7 @@ describe("LoginForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("rejects an invalid email address", async () => {
+  it("rejects a username with unsupported characters", async () => {
     const onSubmit = vi.fn();
 
     render(
@@ -57,10 +57,10 @@ describe("LoginForm", () => {
     );
 
     fireEvent.change(
-      screen.getByLabelText(/email/i),
+      screen.getByLabelText(/username/i),
       {
         target: {
-          value: "invalid-email",
+          value: "invalid@example.com",
         },
       },
     );
@@ -82,7 +82,7 @@ describe("LoginForm", () => {
 
     expect(
       await screen.findByText(
-        "Enter a valid email address.",
+        "Username may contain only letters, numbers, underscores, and hyphens.",
       ),
     ).toBeInTheDocument();
 
@@ -99,10 +99,10 @@ describe("LoginForm", () => {
     );
 
     fireEvent.change(
-      screen.getByLabelText(/email/i),
+      screen.getByLabelText(/username/i),
       {
         target: {
-          value: "  demo@example.com  ",
+          value: "  demo_user  ",
         },
       },
     );
@@ -124,7 +124,7 @@ describe("LoginForm", () => {
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
-        email: "demo@example.com",
+        username: "demo_user",
         password: "demo-password",
       });
     });
@@ -139,7 +139,7 @@ describe("LoginForm", () => {
     );
 
     expect(
-      screen.getByLabelText(/email/i),
+      screen.getByLabelText(/username/i),
     ).toBeDisabled();
 
     expect(
@@ -157,14 +157,14 @@ describe("LoginForm", () => {
     render(
       <LoginForm
         onSubmit={async () => undefined}
-        errorMessage="The email or password is incorrect."
+        errorMessage="The username or password is incorrect."
       />,
     );
 
     expect(
       screen.getByRole("alert"),
     ).toHaveTextContent(
-      "The email or password is incorrect.",
+      "The username or password is incorrect.",
     );
   });
 });

@@ -170,9 +170,10 @@ It verifies:
 5. The frontend root document loads.
 6. A temporary user can be registered.
 7. The temporary user can log in.
-8. The authentication session is created.
+8. The authenticated session can access `/auth/me`.
 9. The user can log out successfully.
-10. Temporary processes and resources are cleaned up.
+10. The session can no longer access `/auth/me` after logout.
+11. Temporary processes and resources are cleaned up.
 
 ### Local Integration Validation
 

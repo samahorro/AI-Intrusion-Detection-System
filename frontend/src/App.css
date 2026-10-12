@@ -138,3 +138,35 @@ body {
 .device-table-empty {
   padding: 1rem 0;
 }
+.nav-bar__links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-bar__links a {
+  margin-left: 0;
+}
+
+.nav-bar__user {
+  color: #d1d5db;
+  font-size: 0.875rem;
+}
+
+.nav-bar__logout {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #6b7280;
+  border-radius: 6px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+.nav-bar__logout:hover {
+  background: #1f2937;
+}
+
+.nav-bar__logout:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}

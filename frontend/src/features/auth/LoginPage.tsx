@@ -18,7 +18,7 @@ function getLoginErrorMessage(
   if (error instanceof AuthServiceError) {
     switch (error.code) {
       case "INVALID_CREDENTIALS":
-        return "The email or password is incorrect.";
+        return "The username or password is incorrect.";
 
       case "NETWORK_ERROR":
         return "Unable to reach the authentication service. Please try again.";

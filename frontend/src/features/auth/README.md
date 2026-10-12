@@ -1,39 +1,35 @@
 # Authentication and Session Foundation
 
-This feature provides Robert-owned frontend authentication and
-session infrastructure for the AI Intrusion Detection System.
+This feature provides Robert-owned frontend authentication and session infrastructure for the AI Intrusion Detection System.
 
-## Current Sprint 2 behavior
+## Current behavior
 
-Authentication currently uses a mock service so frontend development
-can continue before the final backend authentication endpoints are
-available.
+Authentication now uses the backend session API by default:
 
-Development credentials:
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
 
-- Email: demo@example.com
-- Password: demo-password
+The browser sends the backend session cookie by using `credentials: "include"` in the shared fetch transport. The frontend does not create or store a fake access token for backend-authenticated sessions.
 
-These credentials exist only for local frontend development.
+Set `VITE_API_BASE_URL` when the backend is not running at `http://localhost:8000`.
+
+## Optional mock mode
+
+The mock authentication service remains available for isolated frontend development.
+
+Start Vite with `VITE_USE_MOCK_AUTH=true` to use it.
+
+Mock credentials:
+
+- Username: `demo`
+- Password: `demo-password`
+
+Mock sessions are stored in `sessionStorage` and are used only when mock mode is explicitly enabled.
 
 ## Session behavior
 
-Successful mock authentication creates a development session containing:
-
-- access token
-- expiration timestamp
-- authenticated user information
-
-The session is stored in browser sessionStorage.
-
-Expired, malformed, or missing session data is treated as an anonymous
-session.
-
-Logout clears the stored frontend session.
-
-## React integration
-
-AuthProvider owns the current frontend authentication state.
+`AuthProvider` owns the frontend authentication state.
 
 Supported states are:
 
@@ -41,24 +37,20 @@ Supported states are:
 - anonymous
 - authenticated
 
-Components can access the current state and authentication actions with
-the useAuth hook.
+On startup, the provider checks `/auth/me`. A valid backend session restores the authenticated user. A `401 Unauthorized` response is treated as an anonymous session.
 
-## Backend integration
+Logout calls the backend logout endpoint and returns the frontend to the anonymous state.
 
-UI components should depend on the AuthService contract rather than
-directly implementing HTTP requests.
+## Protected routes
 
-A future real authentication service can therefore replace
-MockAuthService without requiring login/account components to contain
-backend request logic.
+`ProtectedRoute` prevents anonymous users from opening authenticated application routes. Dashboard and Alerts remain Kevin-owned monitoring pages; Robert's route guard only controls the authentication boundary around them.
+
+## Backend contract
+
+The current backend authenticates with `username` and `password`. The frontend login form mirrors the backend username validation rules so invalid values can be rejected before a network request is made.
 
 ## Security boundary
 
-Frontend session state and route visibility do not provide authoritative
-authorization.
+Frontend route visibility does not provide authoritative authorization. The backend remains responsible for enforcing protected operations.
 
-The backend remains responsible for enforcing protected operations.
-
-Roles and permissions in the mock user are placeholders only and must
-not be treated as final Derrick-defined security policy.
+Roles and permissions are still placeholder presentation values until Derrick's final security policy and backend contract are available.
