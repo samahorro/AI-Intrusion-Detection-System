@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, DateTime, Integer, String
 
@@ -27,10 +27,10 @@ class User(Base):
     )
 
     created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(UTC),
+)
 
     def to_dict(self):
         """Return user data safe for API responses."""

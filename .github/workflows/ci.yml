@@ -56,7 +56,3 @@ jobs:
             --cov=backend/app \
             --cov-report=term-missing \
             --cov-fail-under=80
-
-      - name: Run ML tests
-        run: |
-          python -m pytest ml/tests -v

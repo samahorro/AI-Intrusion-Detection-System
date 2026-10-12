@@ -5,6 +5,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useLocation,
 } from "react-router-dom";
 
 import {
@@ -16,13 +17,19 @@ import {
 
 import Dashboard from "./pages/Dashboard";
 import Alerts from "./pages/Alerts";
-
+import SecurityConsole from "./pages/SecurityConsole";
 import "./App.css";
 
+// Navigation only appears when the user is authenticated.
 function AuthenticatedNavigation() {
   const { state, logout } = useAuth();
+  const location = useLocation();
 
-  if (state.status !== "authenticated") {
+  // Preserve the Security Console's standalone layout.
+  if (
+    state.status !== "authenticated" ||
+    location.pathname === "/console"
+  ) {
     return null;
   }
 
@@ -37,6 +44,10 @@ function AuthenticatedNavigation() {
 
         <Link to="/alerts">
           Alerts
+        </Link>
+
+        <Link to="/console">
+          Security Console
         </Link>
 
         <span className="nav-bar__user">
@@ -57,6 +68,7 @@ function AuthenticatedNavigation() {
   );
 }
 
+// Reusable protection for pages requiring authentication.
 function ProtectedPage({
   children,
 }: PropsWithChildren) {
@@ -67,50 +79,63 @@ function ProtectedPage({
   );
 }
 
+// Application routing with authentication protection.
+function ApplicationRoutes() {
+  return (
+    <div className="app-shell">
+      <AuthenticatedNavigation />
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ProtectedPage>
+              <Navigate to="/dashboard" replace />
+            </ProtectedPage>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedPage>
+              <Dashboard />
+            </ProtectedPage>
+          }
+        />
+
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedPage>
+              <Alerts />
+            </ProtectedPage>
+          }
+        />
+
+        <Route
+          path="/console"
+          element={
+            <ProtectedPage>
+              <SecurityConsole />
+            </ProtectedPage>
+          }
+        />
+      </Routes>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="app-shell">
-          <AuthenticatedNavigation />
-
-          <Routes>
-            <Route
-              path="/"
-              element={(
-                <ProtectedPage>
-                  <Navigate
-                    to="/dashboard"
-                    replace
-                  />
-                </ProtectedPage>
-              )}
-            />
-
-            <Route
-              path="/login"
-              element={<LoginPage />}
-            />
-
-            <Route
-              path="/dashboard"
-              element={(
-                <ProtectedPage>
-                  <Dashboard />
-                </ProtectedPage>
-              )}
-            />
-
-            <Route
-              path="/alerts"
-              element={(
-                <ProtectedPage>
-                  <Alerts />
-                </ProtectedPage>
-              )}
-            />
-          </Routes>
-        </div>
+        <ApplicationRoutes />
       </AuthProvider>
     </BrowserRouter>
   );

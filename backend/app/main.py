@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .auth.routes import router as auth_router
+from .capture.routes import router as capture_router
 from .database import init_db
 from .detection.routes import router as detection_router
 
@@ -44,6 +45,7 @@ def create_app(
 
     app.include_router(auth_router)
     app.include_router(detection_router)
+    app.include_router(capture_router)
 
     @app.get("/health")
     def health():
