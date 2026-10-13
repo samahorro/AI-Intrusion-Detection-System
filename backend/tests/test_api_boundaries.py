@@ -74,9 +74,9 @@ def test_login_rejects_wrong_username_type(client):
 
 
 def test_capture_start_rejects_missing_interface(
-    client,
+    authenticated_client,
 ):
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={},
     )
@@ -85,9 +85,9 @@ def test_capture_start_rejects_missing_interface(
 
 
 def test_capture_start_rejects_wrong_interface_type(
-    client,
+    authenticated_client,
 ):
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={
             "interface": {
