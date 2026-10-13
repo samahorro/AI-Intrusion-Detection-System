@@ -9,8 +9,8 @@ Features:
 - Start and stop live packet capture
 - Extract TCP SYN, FIN, and RST flags
 - Track packet counts, bytes, protocols, and source IPs
-- Forward packet records to the network flow aggregator
-- Flush remaining flows when capture stops
+- Forward packets to the network flow aggregator
+- Flush remaining flows when supported by FlowBridge
 """
 
 import subprocess
@@ -70,31 +70,42 @@ class CaptureService:
     def _build_command(self, interface):
         return [
             get_tshark_path(),
-            "-i", interface,
+            "-i",
+            interface,
             "-l",
             "-n",
-            "-T", "fields",
-            "-E", "separator=|",
-            "-E", "occurrence=f",
-
-            "-e", "frame.time_epoch",
-
-            "-e", "ip.src",
-            "-e", "ipv6.src",
-            "-e", "ip.dst",
-            "-e", "ipv6.dst",
-
-            "-e", "frame.len",
-
-            "-e", "tcp.srcport",
-            "-e", "tcp.dstport",
-
-            "-e", "udp.srcport",
-            "-e", "udp.dstport",
-
-            "-e", "tcp.flags.syn",
-            "-e", "tcp.flags.fin",
-            "-e", "tcp.flags.reset",
+            "-T",
+            "fields",
+            "-E",
+            "separator=|",
+            "-E",
+            "occurrence=f",
+            "-e",
+            "frame.time_epoch",
+            "-e",
+            "ip.src",
+            "-e",
+            "ipv6.src",
+            "-e",
+            "ip.dst",
+            "-e",
+            "ipv6.dst",
+            "-e",
+            "frame.len",
+            "-e",
+            "tcp.srcport",
+            "-e",
+            "tcp.dstport",
+            "-e",
+            "udp.srcport",
+            "-e",
+            "udp.dstport",
+            "-e",
+            "tcp.flags.syn",
+            "-e",
+            "tcp.flags.fin",
+            "-e",
+            "tcp.flags.reset",
         ]
 
     # ==================================================
@@ -103,7 +114,6 @@ class CaptureService:
 
     def start(self, interface_selector):
         with self._lock:
-
             if self.is_running():
                 raise RuntimeError(
                     "Packet capture is already running."
@@ -125,7 +135,6 @@ class CaptureService:
                     errors="replace",
                     bufsize=1,
                 )
-
             except OSError as exc:
                 raise RuntimeError(
                     "Unable to start packet capture."
@@ -159,12 +168,9 @@ class CaptureService:
 
     def _read_packets(self, process, generation):
         try:
-
             for line in process.stdout:
-
                 parts = line.rstrip("\r\n").split("|")
 
-                # 13 TShark fields are expected.
                 if len(parts) != 13:
                     continue
 
@@ -186,12 +192,10 @@ class CaptureService:
 
                 try:
                     length = int(size)
-
                     timestamp = datetime.fromtimestamp(
                         float(epoch),
                         tz=UTC,
                     ).isoformat()
-
                 except (
                     ValueError,
                     OverflowError,
@@ -199,20 +203,16 @@ class CaptureService:
                 ):
                     continue
 
-                # Determine transport protocol.
                 if tcp_source or tcp_dest:
                     protocol = "TCP"
-
                 elif udp_source or udp_dest:
                     protocol = "UDP"
-
                 else:
                     protocol = "OTHER"
 
                 source = src4 or src6
                 destination = dst4 or dst6
 
-                # Create packet record for flow aggregation.
                 packet = {
                     "timestamp": timestamp,
                     "source_ip": source,
@@ -230,9 +230,7 @@ class CaptureService:
                     "tcp_rst": tcp_rst == "1",
                 }
 
-                # Update shared monitoring statistics.
                 with self._lock:
-
                     if generation != self._generation:
                         break
 
@@ -246,19 +244,15 @@ class CaptureService:
 
                     self.recent_packets.appendleft(packet)
 
-                    # Send packet to the flow aggregation pipeline.
                     self.flow_bridge.add_packet(packet)
 
                     self.last_packet_at = timestamp
 
         except (OSError, UnicodeError) as exc:
-
             with self._lock:
                 if generation == self._generation:
                     self.last_error = str(exc)
-
         finally:
-
             if process.stdout is not None:
                 process.stdout.close()
 
@@ -267,43 +261,27 @@ class CaptureService:
     # ==================================================
 
     def get_stats(self):
-
         with self._lock:
-
             running = self.is_running()
 
             return {
                 "running": running,
-
                 "interface": (
                     self.interface if running else None
                 ),
-
                 "packet_count": self.packet_count,
-
                 "total_bytes": self.total_bytes,
-
-                "observed_source_ips": len(
-                    self.source_ips
-                ),
-
+                "observed_source_ips": len(self.source_ips),
                 "protocols": dict(self.protocols),
-
                 "top_source_ips": [
                     {
                         "ip": ip,
                         "packets": count,
                     }
-                    for ip, count
-                    in self.source_ips.most_common(10)
+                    for ip, count in self.source_ips.most_common(10)
                 ],
-
-                "recent_packets": list(
-                    self.recent_packets
-                ),
-
+                "recent_packets": list(self.recent_packets),
                 "last_packet_at": self.last_packet_at,
-
                 "last_error": self.last_error,
             }
 
@@ -312,9 +290,7 @@ class CaptureService:
     # ==================================================
 
     def stop(self):
-
         with self._lock:
-
             if not self.is_running():
                 raise RuntimeError(
                     "Packet capture is not running."
@@ -323,24 +299,29 @@ class CaptureService:
             process = self.process
             stopped_interface = self.interface
 
-            # Stop the TShark capture process.
             process.terminate()
 
             try:
                 process.wait(timeout=5)
-
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=5)
 
-            # Invalidate the current capture session.
             self._generation += 1
 
             self.process = None
             self.interface = None
 
-            # Process any remaining aggregated flows.
-            self.flow_bridge.flush()
+            # Compatibility with FlowBridge implementations
+            # that do not yet support flushing.
+            flush = getattr(
+                self.flow_bridge,
+                "flush",
+                None,
+            )
+
+            if callable(flush):
+                flush()
 
             return {
                 "status": "stopped",
@@ -348,5 +329,4 @@ class CaptureService:
             }
 
 
-# Shared capture service instance.
 capture_service = CaptureService()
