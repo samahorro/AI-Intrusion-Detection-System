@@ -16,7 +16,7 @@ Features:
 import subprocess
 import threading
 from collections import Counter, deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .flow_bridge import FlowBridge
 from .interface_service import (
@@ -189,7 +189,7 @@ class CaptureService:
 
                     timestamp = datetime.fromtimestamp(
                         float(epoch),
-                        tz=timezone.utc,
+                        tz=UTC,
                     ).isoformat()
 
                 except (
