@@ -1,7 +1,9 @@
 import os
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from .auth.routes import router as auth_router
@@ -10,11 +12,7 @@ from .database import init_db
 from .detection.routes import router as detection_router
 
 
-def create_app(
-    initialize_database: bool = True,
-):
-    """Create the FastAPI application."""
-
+def create_app(initialize_database: bool = True):
     app = FastAPI(
         title="AI Intrusion Detection System API",
         version="0.3.0",
@@ -42,6 +40,29 @@ def create_app(
         same_site="lax",
         https_only=False,
     )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request,
+        exc: RequestValidationError,
+    ):
+        safe_errors = []
+
+        for error in exc.errors():
+            safe_errors.append(
+                {
+                    "type": error.get("type"),
+                    "loc": error.get("loc"),
+                    "msg": error.get("msg"),
+                }
+            )
+
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": safe_errors,
+            },
+        )
 
     app.include_router(auth_router)
     app.include_router(detection_router)
