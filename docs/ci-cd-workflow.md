@@ -167,13 +167,20 @@ It verifies:
 2. The backend application starts.
 3. The frontend preview server starts.
 4. The backend `/health` endpoint responds.
-5. The frontend root document loads.
-6. A temporary user can be registered.
-7. The temporary user can log in.
-8. The authenticated session can access `/auth/me`.
-9. The user can log out successfully.
-10. The session can no longer access `/auth/me` after logout.
-11. Temporary processes and resources are cleaned up.
+5. The read-only `/capture/status`, `/capture/stats`, and `/capture/flows` APIs
+   return the expected empty-session contracts on a fresh backend.
+6. The frontend root document loads.
+7. A temporary user can be registered.
+8. The temporary user can log in.
+9. The authenticated session can access `/auth/me`.
+10. The user can log out successfully.
+11. The session can no longer access `/auth/me` after logout.
+12. Temporary processes and resources are cleaned up.
+
+The capture checks validate the API shapes used by the Security Console without
+starting network capture. They do **not** prove that TShark can capture traffic,
+that live packets appear, or that an ML detection is working. Those require
+separate manual and integration testing on a configured machine.
 
 ### Local Integration Validation
 

@@ -130,6 +130,62 @@ if response.get("status") != "ok":
 print("Backend health response validated.")
 PY
 
+echo "=== Verifying read-only capture API contracts ==="
+
+# Validate the monitoring and flow-preview endpoints without starting
+# TShark or requiring live network traffic or capture permissions.
+CAPTURE_STATUS="$(
+  curl --fail --silent --show-error "${BACKEND_URL}/capture/status"
+)"
+
+CAPTURE_STATS="$(
+  curl --fail --silent --show-error "${BACKEND_URL}/capture/stats"
+)"
+
+CAPTURE_FLOWS="$(
+  curl --fail --silent --show-error "${BACKEND_URL}/capture/flows"
+)"
+
+python3 - "${CAPTURE_STATUS}" "${CAPTURE_STATS}" "${CAPTURE_FLOWS}" <<'PY_CAPTURE'
+import json
+import sys
+
+status, stats, flows = (json.loads(value) for value in sys.argv[1:])
+
+
+def require(condition, description):
+    if not condition:
+        raise SystemExit(f"Capture API contract failed: {description}")
+
+
+# The smoke test launches a fresh backend and never starts capture.
+require(status == {"running": False, "interface": None}, "/capture/status")
+require(stats.get("running") is False, "capture must be stopped")
+require(stats.get("interface") is None, "capture interface must be null")
+
+for field in ("packet_count", "total_bytes", "observed_source_ips"):
+    require(type(stats.get(field)) is int and stats[field] == 0,
+            f"/capture/stats {field} must be zero")
+
+for field, expected_type in (("protocols", dict), ("top_source_ips", list),
+                             ("recent_packets", list)):
+    require(isinstance(stats.get(field), expected_type),
+            f"/capture/stats {field} has unexpected type")
+
+require(stats.get("last_packet_at") is None, "unexpected last packet")
+require(stats.get("last_error") is None, "unexpected capture error")
+require(flows.get("status") == "preview_only", "flow preview status")
+require(flows.get("window_packets") == 0, "flow window not empty")
+require(flows.get("flow_count") == 0, "flow count not zero")
+require(flows.get("flows") == [], "unexpected preview flows")
+require(isinstance(flows.get("feature_order"), list)
+        and len(flows["feature_order"]) > 0
+        and all(isinstance(name, str) for name in flows["feature_order"]),
+        "invalid flow feature order")
+
+print("Capture status, statistics, and flow preview contracts validated.")
+PY_CAPTURE
+
 echo "=== Verifying frontend HTML ==="
 
 FRONTEND_RESPONSE="$(
