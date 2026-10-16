@@ -680,3 +680,26 @@
     transition: none !important;
   }
 }
+
+
+/* =========================================
+   KEEP PROFILE MENU ABOVE DASHBOARD
+   ========================================= */
+
+.sentinel-topbar {
+  position: relative;
+  z-index: 1000;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.sentinel-topright {
+  position: relative;
+  z-index: 1001;
+  overflow: visible;
+}
+
+.sentinel-content {
+  position: relative;
+  z-index: 1;
+}

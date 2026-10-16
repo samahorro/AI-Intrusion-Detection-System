@@ -1,0 +1,156 @@
+/* AEGIS — violet glass security console theme.
+   Import AFTER SecurityConsole.css; visual styling only. */
+.sentinel-console {
+  --sx-bg: #08091b;
+  --sx-panel: rgba(25, 19, 61, .62);
+  --sx-border: rgba(157, 116, 255, .24);
+  --sx-muted: #a6a3c7;
+  --sx-blue: #945bff;
+  color: #f2efff;
+  background:
+    radial-gradient(ellipse at 83% 5%, rgba(94, 44, 207, .25), transparent 45%),
+    radial-gradient(ellipse at 1% 78%, rgba(79, 28, 190, .13), transparent 36%),
+    linear-gradient(135deg, #090b20 0%, #09091b 50%, #0d0820 100%);
+  min-height: 100vh;
+}
+.sentinel-console * { box-sizing: border-box; }
+.sentinel-sidebar {
+  background: linear-gradient(170deg, rgba(16, 14, 43, .96), rgba(14, 12, 38, .86));
+  border-right: 1px solid rgba(156, 120, 255, .22);
+  box-shadow: 8px 0 40px rgba(5, 3, 21, .2);
+  position: relative;
+  isolation: isolate;
+}
+.sentinel-sidebar::before {
+  content:""; position:absolute; inset:auto 0 0 0; height:210px;
+  background: repeating-radial-gradient(ellipse at -25% 130%, transparent 0px, transparent 12px, rgba(142, 76, 254, .15) 13px, transparent 14px);
+  pointer-events:none; z-index:-1;
+}
+.sentinel-brand {font-size:22px; letter-spacing:.10em; color:#fff;}
+.sentinel-brand-logo {
+  width:43px; height:43px; border-radius:11px;
+  color:#b28aff; border:1px solid rgba(175, 111, 255, .45);
+  background:linear-gradient(135deg,rgba(136,70,255,.3),rgba(70,38,162,.18));
+  box-shadow: 0 0 22px rgba(144, 60, 255, .23);
+}
+/* Keep underlying AEGIS branding; de-emphasize / IDS to lead with the product name */
+.sentinel-brand-accent { font-size:12px; color:#a78bfa; font-weight:600; }
+.sentinel-brand small { color:#aaa0d7; font-size:9px; letter-spacing:.15em; }
+.sentinel-nav-label { color:#8e87c3; }
+.sentinel-nav-selected, .sentinel-nav-link, .sentinel-nav-muted { transition:background .18s ease, color .18s ease, border-color .18s ease; }
+.sentinel-nav-selected {
+  background:linear-gradient(100deg,rgba(117,58,243,.33),rgba(93,52,186,.12));
+  border:1px solid rgba(154,104,255,.42); border-left:3px solid #a060ff;
+  box-shadow:inset 0 0 20px rgba(148,87,255,.08),0 0 20px rgba(85,38,176,.12);
+  color:#e6d6ff;
+}
+.sentinel-nav-link {color:#bcb5dc;}
+.sentinel-nav-link:hover {color:#fff;background:rgba(137,86,255,.13);}
+.sentinel-nav-muted {color:#8780b0;}
+.sentinel-nav-muted i {color:#b084ff;}
+.sentinel-nav-foot {border-top:1px solid rgba(169,135,255,.2); gap:9px;}
+.sentinel-nav-foot a {color:#b99cff;}
+.sentinel-nav-foot span {color:#8e85bc;}
+.sentinel-nav-foot::after {
+  content:"Adaptive Security.\A Clear Visibility. Faster Response.";
+  white-space:pre-line; font-size:11px; line-height:1.7;
+  color:#c6a8ff; padding-top:14px; letter-spacing:.02em;
+}
+.sentinel-main { min-width:0; }
+.sentinel-topbar {
+  background:rgba(10, 10, 34, .38);
+  border-bottom:1px solid rgba(166,119,255,.17);
+  backdrop-filter:blur(18px);
+}
+.sentinel-breadcrumb {color:#ab9ce6;}
+.sentinel-slash,.sentinel-separator {color:#72679d;}
+.sentinel-topright {color:#bcb6d9;}
+.sentinel-live-dot {background:#30dfae;box-shadow:0 0 13px rgba(48,223,174,.56);}
+.sentinel-content {max-width:1700px;}
+.sentinel-heading {
+  padding:30px 30px; border-radius:17px;
+  border:1px solid rgba(144,94,255,.23);
+  background:
+   radial-gradient(ellipse at 80% 30%,rgba(150,67,255,.24), transparent 46%),
+   linear-gradient(105deg,rgba(28,20,73,.75),rgba(24,17,61,.35));
+  box-shadow:0 15px 50px rgba(6,4,25,.16);
+  position:relative;overflow:hidden;
+}
+.sentinel-heading::after {
+  content:""; position:absolute; right:8%;top:-125px;width:420px;height:420px;
+  border:1px solid rgba(177,105,255,.18);border-radius:50%;
+  box-shadow:0 0 0 52px rgba(164,93,255,.045),0 0 0 105px rgba(164,93,255,.024);
+  pointer-events:none;
+}
+.sentinel-heading > * {position:relative;z-index:1;}
+.sentinel-eyebrow {color:#c16bff;letter-spacing:.23em;}
+.sentinel-heading h1 {font-size:clamp(27px,3vw,39px);color:#faf8ff;letter-spacing:-.045em;}
+.sentinel-heading p {color:#aaa5cf;}
+.sentinel-state {border:1px solid rgba(166,121,255,.24);background:rgba(70,46,124,.25);color:#c9b6ff;backdrop-filter:blur(16px);}
+.sentinel-state.is-running {background:rgba(30,99,77,.24);border-color:rgba(50,220,170,.34);color:#6ef4cb;}
+.sentinel-error {border:1px solid rgba(255,95,139,.4);background:rgba(100,28,61,.22);color:#ffb2cb;backdrop-filter:blur(12px);}
+.sentinel-capture-bar,.sentinel-metric,.sentinel-panel {
+  background:linear-gradient(145deg,rgba(35,25,86,.60),rgba(18,16,55,.56));
+  border:1px solid rgba(160,119,255,.23);
+  box-shadow:inset 0 1px 0 rgba(213,180,255,.055),0 13px 32px rgba(4,2,27,.16);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-radius:15px;
+}
+.sentinel-metric {transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;overflow:hidden;}
+.sentinel-metric:hover {transform:translateY(-3px);border-color:rgba(180,115,255,.50);box-shadow:0 13px 30px rgba(96,46,183,.18);}
+.sentinel-metric::before {
+  content:"";position:absolute;inset:0 0 auto;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(180,100,255,.8),transparent);
+  opacity:.55;
+}
+.sentinel-metric>span,.sentinel-control-label {color:#b7a7f5;letter-spacing:.11em;}
+.sentinel-metric strong {color:#fff;text-shadow:0 0 24px rgba(168,112,255,.15);}
+.sentinel-metric small {color:#968fc2;}
+.sentinel-metric b {color:#a46bff;background:rgba(139,76,255,.16);border-radius:10px;padding:5px 8px;}
+.sentinel-capture-bar select, .sentinel-table-tools input {
+  background:rgba(10,10,34,.50);color:#e9e3ff;
+  border:1px solid rgba(162,122,255,.3);outline-color:#a46bff;
+  border-radius:9px;
+}
+.sentinel-capture-hint {color:#a7a0c9;}
+.sentinel-capture-button {
+  background:linear-gradient(120deg,#9e54fa,#7337ed);
+  border:1px solid rgba(208,167,255,.32);border-radius:9px;
+  box-shadow:0 8px 25px rgba(114,51,239,.3);
+  color:white;transition:filter .18s ease,transform .18s ease;
+}
+.sentinel-capture-button:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px);}
+.sentinel-capture-button.is-stop {background:rgba(122,38,73,.35);border-color:rgba(255,114,147,.4);color:#ffc1d4;box-shadow:none;}
+.sentinel-panel-head {border-bottom:1px solid rgba(161,119,255,.18);}
+.sentinel-panel h2 {color:#f3edff;}
+.sentinel-panel-head p {color:#9e96c5;}
+.sentinel-panel-tag {color:#55f4c8;background:rgba(27,127,101,.17);border:1px solid rgba(58,210,170,.35);border-radius:7px;}
+.sentinel-panel-tag.muted {background:rgba(126,70,213,.2);color:#c59dff;border:1px solid rgba(166,98,255,.35);}
+.sentinel-protocol-square,.sentinel-protocol-fill {background:#a15aff;}
+.sentinel-protocol-square.square-1,.sentinel-protocol-fill.fill-1 {background:#65b7ff;}
+.sentinel-protocol-square.square-2,.sentinel-protocol-fill.fill-2 {background:#d7a8ff;}
+.sentinel-protocol-square.square-3,.sentinel-protocol-fill.fill-3 {background:#9883d4;}
+.sentinel-protocol-track {background:rgba(150,127,206,.14);}
+.sentinel-protocol span:not(.sentinel-protocol-square),.sentinel-empty,.sentinel-detection-empty p {color:#a5a0c7;}
+.sentinel-protocol em {color:#ece6ff;}
+.sentinel-detection-icon {color:#ae7bff;}
+.sentinel-detection-empty div:last-child {border-color:rgba(181,130,255,.3);color:#b49bf7;}
+.sentinel-tabs button {color:#aaa0d3;}
+.sentinel-tabs button:hover {background:rgba(141,94,240,.14);color:#eee7ff;}
+.sentinel-tabs button.active {background:linear-gradient(120deg,rgba(145,75,244,.85),rgba(111,53,227,.82));color:#fff;}
+.sentinel-activity th {background:rgba(22,18,60,.75);color:#b6a5ef;}
+.sentinel-activity td {border-top:1px solid rgba(162,120,255,.12);color:#ccc5e9;}
+.sentinel-activity tr:hover td {background:rgba(122,69,240,.11);}
+.sentinel-activity .sentinel-mono {color:#d7c4ff;}
+.sentinel-proto-chip {color:#cbb0ff;background:rgba(123,67,239,.18);border:1px solid rgba(164,102,254,.45);}
+.sentinel-table-foot {border-top:1px solid rgba(163,122,255,.19);color:#978dc0;}
+.sentinel-footer {color:#9185be;}
+/* Consistent purple glass controls and statuses in newer console panels */
+.sentinel-console button {font-family:inherit;}
+.sentinel-console button:focus-visible, .sentinel-console input:focus-visible, .sentinel-console select:focus-visible {outline:2px solid #bb8aff;outline-offset:2px;}
+@media(max-width:720px){
+ .sentinel-heading{padding:22px 18px;}
+ .sentinel-heading::after {opacity:.4;right:-270px;}
+ .sentinel-nav-foot::after {font-size:10px;}
+}
+@media(prefers-reduced-motion:reduce){.sentinel-console *{transition:none!important;animation:none!important;}}

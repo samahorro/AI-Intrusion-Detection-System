@@ -1,35 +1,197 @@
+/* AEGIS secure access — animated violet globe; no image assets required. */
 .auth-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
-  place-items: start center;
-  min-height: calc(100vh - 5rem);
-  padding: 3rem 1rem;
-  background: #f8fafc;
+  place-items: center;
+  padding: 105px 24px 76px;
+  box-sizing: border-box;
+  color: #f5f1ff;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  background: radial-gradient(ellipse at 72% 45%, #211048 0, #100b2d 37%, #070918 76%, #060713 100%);
+}
+.auth-page * { box-sizing: border-box; }
+.aegis-backdrop { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.aegis-backdrop__grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(171,126,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(171,126,255,.05) 1px, transparent 1px);
+  background-size: 68px 68px;
+  mask-image: radial-gradient(ellipse at 68% 50%, #000 15%, transparent 82%);
+}
+.aegis-backdrop__light { position: absolute; border-radius: 50%; filter: blur(90px); }
+.aegis-backdrop__light--left { width: 470px; height: 470px; left: -230px; top: -120px; background: rgba(109,62,237,.28); }
+.aegis-backdrop__light--right { width: 570px; height: 570px; right: -130px; bottom: -200px; background: rgba(129,50,245,.22); }
+.aegis-globe { position: absolute; width: min(61vw, 770px); aspect-ratio: 1; right: -7%; top: 50%; transform: translateY(-50%); opacity: .9; }
+.aegis-globe__sphere { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 22px rgba(151,79,255,.3)); animation: aegis-rotate 50s ease-in-out infinite alternate; }
+.aegis-globe__halo { position: absolute; inset: 8%; border-radius: 50%; box-shadow: 0 0 100px 22px rgba(106,40,245,.17), inset 0 0 90px rgba(162,111,255,.13); animation: aegis-breathe 7s ease-in-out infinite; }
+.aegis-globe__paths { animation: aegis-lines 7s linear infinite; }
+.aegis-globe__ring { position: absolute; inset: 13%; border-radius: 50%; border: 1px solid rgba(161,102,255,.17); transform: rotate(-31deg) scaleY(.48); }
+.aegis-globe__ring--two { inset: 2%; transform: rotate(34deg) scaleY(.58); border-color: rgba(187,122,255,.11); }
+.aegis-backdrop__scan { position: absolute; inset: -100% 0 auto; height: 120%; background: linear-gradient(180deg, transparent 0%, rgba(191,132,255,.035) 49%, rgba(199,153,255,.085) 50%, transparent 51%); animation: aegis-sweep 12s linear infinite; }
+
+.auth-brand { position: absolute; z-index: 3; top: 38px; left: 48px; display: flex; align-items: center; gap: 12px; }
+.auth-brand__mark { width: 23px; height: 23px; display: block; transform: rotate(45deg); border: 4px solid #a66dff; box-shadow: 0 0 20px rgba(168,97,255,.45), inset 0 0 9px rgba(186,137,255,.4); }
+.auth-brand__text { font-size: 24px; font-weight: 850; color: #fff; letter-spacing: .16em; }
+.auth-brand__subtitle { margin-left: 7px; padding-left: 18px; border-left: 1px solid rgba(187,157,255,.3); color: #a89bc9; font-size: 10px; font-weight: 700; letter-spacing: .22em; }
+.auth-page__content { position: relative; z-index: 2; width: min(100%, 500px); margin-left: min(-17vw, -60px); }
+.auth-page__eyebrow { margin-bottom: 14px; color: #b38bff; font-size: 10px; font-weight: 800; letter-spacing: .26em; }
+.auth-page .auth-card {
+  position: relative; width: 100%; border-radius: 22px; padding: 40px;
+  color: #f7f2ff;
+  background: linear-gradient(135deg, rgba(63,40,118,.76), rgba(19,15,49,.77) 62%, rgba(30,18,65,.7));
+  border: 1px solid rgba(194,151,255,.28);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  box-shadow: 0 35px 95px rgba(0,0,0,.48), 0 0 85px rgba(109,53,242,.14), inset 0 1px rgba(255,255,255,.09);
+  animation: aegis-appear .8s ease both;
+}
+.auth-page .auth-card::before { content: ""; position: absolute; left: 22px; right: 22px; top: 0; height: 1px; background: linear-gradient(90deg,transparent,rgba(201,170,255,.64),transparent); pointer-events: none; }
+.auth-page .base-card__header { margin-bottom: 26px; }
+.auth-page .base-card__title { margin: 0 0 9px; color: #fff; font-size: 36px; font-weight: 800; letter-spacing: -.045em; }
+.auth-page .base-card__description { color: #bcb1db; font-size: 14px; line-height: 1.6; }
+.auth-login-form { display: grid; gap: 19px; }
+.auth-page .base-form-field { display: flex; flex-direction: column; gap: 9px; }
+.auth-page .base-form-field__label { color: #e7ddff; font-weight: 650; font-size: 13px; }
+.auth-page .base-form-field__required { color: #ca96ff; }
+.auth-page .base-input {
+  width: 100%; min-height: 52px; padding: 12px 15px;
+  color: #fff; background: rgba(10,9,31,.63);
+  border: 1px solid rgba(179,146,231,.29); border-radius: 11px;
+  font-size: 14px; outline: none;
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.auth-page .base-input::placeholder { color: #8f83b4; }
+.auth-page .base-input:hover { border-color: rgba(198,162,255,.53); }
+.auth-page .base-input:focus-visible, .auth-page .base-input:focus { background: rgba(22,15,54,.8); border-color: #b785ff; box-shadow: 0 0 0 3px rgba(157,91,255,.16), 0 0 25px rgba(148,75,255,.14); }
+.auth-page .auth-login-form__submit {
+  width: 100%; min-height: 52px; margin-top: 8px;
+  background: linear-gradient(110deg,#a05aff,#7932ee);
+  color: #fff; font-weight: 750; font-size: 15px;
+  border: 1px solid rgba(219,192,255,.3); border-radius: 11px;
+  cursor: pointer; box-shadow: 0 12px 27px rgba(103,44,233,.27);
+  transition: transform .2s, box-shadow .2s, filter .2s;
+}
+.auth-page .auth-login-form__submit:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 16px 32px rgba(130,55,254,.4); }
+.auth-page .auth-login-form__submit:focus-visible { outline: 3px solid #d9bbff; outline-offset: 3px; }
+.auth-page .auth-login-form__submit:disabled { opacity: .6; cursor: not-allowed; }
+.auth-page .auth-login-form__error, .auth-page .base-form-field__error { color: #ffadbf; background: rgba(255,75,125,.09); border: 1px solid rgba(255,95,135,.3); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.auth-session-status { color: #bcb1db; }
+.auth-page__slogan { color: #b2a1d9; text-align: center; font-weight: 750; letter-spacing: .13em; line-height: 1.8; font-size: 9px; margin: 25px 0 0; }
+.auth-page__slogan span { padding: 0 7px; color: #a36bff; }
+.auth-page__footer { position: absolute; bottom: 25px; left: 0; right: 0; text-align: center; font-size: 10px; letter-spacing: .17em; color: #655b88; }
+.auth-page__footer span { color: #ae80ff; }
+
+@keyframes aegis-rotate { from { transform: rotate(-9deg) scale(.98); } to { transform: rotate(11deg) scale(1.025); } }
+@keyframes aegis-breathe { 0%,100% { opacity: .6; transform: scale(.98); } 50% { opacity: 1; transform: scale(1.045); } }
+@keyframes aegis-lines { to { stroke-dashoffset: -130; } }
+@keyframes aegis-sweep { from { transform: translateY(-100%); } to { transform: translateY(190%); } }
+@keyframes aegis-appear { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 950px) { .aegis-globe { right: -32%; width: 82vw; opacity: .55; } .auth-page__content { margin-left: 0; } }
+@media (max-width: 600px) {
+  .auth-page { padding: 112px 16px 90px; }
+  .auth-brand { top: 25px; left: 25px; }
+  .auth-brand__text { font-size: 20px; }
+  .auth-brand__subtitle { display: none; }
+  .aegis-globe { width: 105vw; right: -47%; top: 38%; opacity: .45; }
+  .auth-page .auth-card { padding: 29px 23px; border-radius: 18px; }
+  .auth-page .base-card__title { font-size: 30px; }
+  .auth-page__slogan { letter-spacing: .07em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aegis-globe__sphere, .aegis-globe__halo, .aegis-globe__paths,
+  .aegis-backdrop__scan, .auth-page .auth-card { animation: none !important; }
+  .auth-page .base-input, .auth-page .auth-login-form__submit { transition: none; }
 }
 
-.auth-card {
-  width: min(100%, 28rem);
+/* Geographic outlines on the animated AEGIS wireframe globe */
+.aegis-globe__continents {
+  opacity: .92;
+  filter: drop-shadow(0 0 6px rgba(179, 104, 255, .28));
+  animation: aegis-land-pulse 8s ease-in-out infinite;
+}
+.aegis-globe__land-points { animation: aegis-node-pulse 4s ease-in-out infinite alternate; }
+@keyframes aegis-land-pulse {
+  0%,100% { opacity: .78; }
+  50% { opacity: 1; }
+}
+@keyframes aegis-node-pulse {
+  from { opacity: .28; }
+  to { opacity: .80; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aegis-globe__continents, .aegis-globe__land-points { animation: none !important; }
 }
 
-.auth-login-form {
-  display: grid;
-  gap: 1rem;
+/* Real geography globe: gently float rather than rotate the flat projected image. */
+.aegis-globe__sphere {
+  object-fit: contain;
+  animation: aegis-earth-drift 13s ease-in-out infinite alternate;
+}
+@keyframes aegis-earth-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-8px, -7px, 0) scale(1.025); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aegis-globe__sphere { animation: none !important; }
 }
 
-.auth-login-form__error {
-  padding: 0.75rem;
-  border: 1px solid #b91c1c;
-  border-radius: 0.375rem;
-  background: #fef2f2;
-  color: #991b1b;
-  font-size: 0.9rem;
-}
-
-.auth-login-form__submit {
+/* Glowing intercontinental paths over the AEGIS Earth graphic. */
+.aegis-globe__routes {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  margin-top: 0.25rem;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(202, 113, 255, .38));
 }
-
-.auth-session-status {
-  margin: 0;
-  color: #6b7280;
+.aegis-globe__route-glow,
+.aegis-globe__route-line {
+  fill: none;
+  stroke: url(#aegis-route-gradient);
+  stroke-linecap: round;
+}
+.aegis-globe__route-glow {
+  stroke-width: 6;
+  opacity: .45;
+  filter: url(#aegis-route-glow);
+}
+.aegis-globe__route-line {
+  stroke-width: 1.8;
+  stroke-dasharray: 9 13;
+  animation: aegis-route-travel 9s linear infinite;
+  opacity: .95;
+}
+.aegis-globe__endpoint {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aegis-endpoint-pulse 3s ease-in-out infinite alternate;
+}
+.aegis-globe__orbit {
+  fill: none;
+  stroke: #cc8cff;
+  stroke-width: 1.3;
+  opacity: .36;
+  stroke-dasharray: 12 10;
+  animation: aegis-route-travel 22s linear infinite;
+}
+.aegis-globe__orbit--second {
+  stroke: #ff9de0;
+  opacity: .27;
+  animation-direction: reverse;
+}
+@keyframes aegis-route-travel {
+  to { stroke-dashoffset: -264; }
+}
+@keyframes aegis-endpoint-pulse {
+  from { opacity: .5; transform: scale(.8); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aegis-globe__route-line,
+  .aegis-globe__endpoint,
+  .aegis-globe__orbit { animation: none !important; }
 }
