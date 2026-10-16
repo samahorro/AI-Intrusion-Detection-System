@@ -90,7 +90,7 @@ function ApplicationRoutes() {
           path="/"
           element={
             <ProtectedPage>
-              <Navigate to="/dashboard" replace />
+              <Navigate to="/console" replace />
             </ProtectedPage>
           }
         />

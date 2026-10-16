@@ -1,0 +1,245 @@
+
+/* ==========================================
+   AEGIS — ANIMATED NETWORK ACTIVITY
+   Purple Glass Terminal Popups
+   ========================================== */
+
+.aegis-globe .aegis-activity-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.aegis-activity-popup {
+  position: absolute;
+  width: 240px;
+  max-width: 45%;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 10px;
+
+  background: rgba(9, 8, 28, 0.93);
+  border: 1px solid rgba(188, 135, 255, 0.5);
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.55),
+    0 0 20px rgba(141, 75, 255, 0.27),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  color: #e3d6ff;
+  opacity: 0;
+  visibility: hidden;
+
+  transform: translateY(12px) scale(0.96);
+
+  animation: aegis-popup-cycle 25s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+/* Terminal header */
+
+.aegis-activity-popup__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(121, 64, 214, 0.4),
+    rgba(56, 32, 103, 0.3)
+  );
+
+  border-bottom: 1px solid rgba(181, 123, 255, 0.22);
+
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.aegis-activity-popup__indicator {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  background: #c28aff;
+  box-shadow: 0 0 8px rgba(196, 135, 255, 0.95);
+
+  animation: aegis-terminal-pulse 2s ease-in-out infinite;
+}
+
+.aegis-activity-popup__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aegis-activity-popup__status {
+  margin-left: auto;
+  color: #bb9be8;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Terminal output */
+
+.aegis-activity-popup__body {
+  padding: 11px 12px;
+
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1.9;
+}
+
+.aegis-activity-popup__line {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.aegis-activity-popup__prompt {
+  color: #c692ff;
+  font-weight: 700;
+}
+
+/* Popup positions */
+
+.aegis-activity-popup--1 {
+  top: 27%;
+  left: 9%;
+  animation-delay: 0s;
+}
+
+.aegis-activity-popup--2 {
+  top: 39%;
+  right: 1%;
+  animation-delay: -20s;
+}
+
+.aegis-activity-popup--3 {
+  top: 57%;
+  left: 13%;
+  animation-delay: -15s;
+}
+
+.aegis-activity-popup--4 {
+  top: 70%;
+  right: 8%;
+  animation-delay: -10s;
+}
+
+.aegis-activity-popup--5 {
+  top: 17%;
+  right: 8%;
+  animation-delay: -5s;
+}
+
+/* Color variants */
+
+.aegis-activity-popup--success {
+  border-color: rgba(106, 229, 191, 0.42);
+}
+
+.aegis-activity-popup--success
+.aegis-activity-popup__prompt {
+  color: #82f0c6;
+}
+
+.aegis-activity-popup--warning {
+  border-color: rgba(255, 132, 177, 0.45);
+}
+
+.aegis-activity-popup--warning
+.aegis-activity-popup__prompt {
+  color: #ff93b6;
+}
+
+.aegis-activity-popup--info {
+  border-color: rgba(184, 126, 255, 0.5);
+}
+
+/* Appear, display, disappear */
+
+@keyframes aegis-popup-cycle {
+  0%,
+  2% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px) scale(0.96);
+  }
+
+  5% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  15% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-3px) scale(1);
+  }
+
+  19% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-14px) scale(0.98);
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-14px) scale(0.98);
+  }
+}
+
+@keyframes aegis-terminal-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@media (max-width: 1200px) {
+  .aegis-activity-popup {
+    width: 205px;
+    max-width: 49%;
+  }
+
+  .aegis-activity-popup__body {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 900px) {
+  .aegis-globe .aegis-activity-layer {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aegis-activity-popup,
+  .aegis-activity-popup__indicator {
+    animation: none !important;
+  }
+
+  .aegis-activity-popup {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
