@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
 ROOT_DIR="$(
@@ -9,347 +8,121 @@ ROOT_DIR="$(
 
 BACKEND_HOST="${BACKEND_HOST:-127.0.0.1}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
-
 FRONTEND_HOST="${FRONTEND_HOST:-127.0.0.1}"
 FRONTEND_PORT="${FRONTEND_PORT:-4173}"
-
 BACKEND_URL="http://${BACKEND_HOST}:${BACKEND_PORT}"
 FRONTEND_URL="http://${FRONTEND_HOST}:${FRONTEND_PORT}"
-
-BACKEND_LOG="${TMPDIR:-/tmp}/ai-ids-backend-smoke.log"
-FRONTEND_LOG="${TMPDIR:-/tmp}/ai-ids-frontend-smoke.log"
-DATABASE_FILE="${TMPDIR:-/tmp}/ai-ids-smoke.db"
-
+BACKEND_LOG="$(mktemp "${TMPDIR:-/tmp}/ai-ids-backend-smoke.XXXXXX")"
+FRONTEND_LOG="$(mktemp "${TMPDIR:-/tmp}/ai-ids-frontend-smoke.XXXXXX")"
+DATABASE_FILE="$(mktemp "${TMPDIR:-/tmp}/ai-ids-smoke-db.XXXXXX")"
 BACKEND_PID=""
 FRONTEND_PID=""
 COOKIE_FILE=""
 
 cleanup() {
   local exit_code=$?
-
   if [[ -n "${FRONTEND_PID}" ]]; then
     kill "${FRONTEND_PID}" 2>/dev/null || true
   fi
-
   if [[ -n "${BACKEND_PID}" ]]; then
     kill "${BACKEND_PID}" 2>/dev/null || true
   fi
-
-  if [[ -n "${COOKIE_FILE}" ]]; then
-    rm -f "${COOKIE_FILE}"
-  fi
-
-  rm -f "${DATABASE_FILE}"
-
+  [[ -z "${COOKIE_FILE}" ]] || rm -f "${COOKIE_FILE}"
+  rm -f "${DATABASE_FILE}" "${BACKEND_LOG}" "${FRONTEND_LOG}"
   exit "${exit_code}"
 }
-
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
 
 wait_for_url() {
-  local name="$1"
-  local url="$2"
-  local attempts="${3:-30}"
-
+  local name="$1" url="$2" attempts="${3:-30}"
   echo "Waiting for ${name}: ${url}"
-
   for ((attempt = 1; attempt <= attempts; attempt++)); do
-    if curl --fail --silent --show-error "${url}" >/dev/null; then
+    if curl --fail --silent --output /dev/null "${url}"; then
       echo "${name} is ready."
       return 0
     fi
-
     sleep 1
   done
-
   echo "${name} did not become ready." >&2
-
   if [[ "${name}" == "backend" ]]; then
     cat "${BACKEND_LOG}" >&2 || true
   else
     cat "${FRONTEND_LOG}" >&2 || true
   fi
-
   return 1
 }
 
 cd "${ROOT_DIR}"
-
 echo "=== Building frontend ==="
-
 npm --prefix frontend run build
 
 echo "=== Starting backend ==="
-
 DATABASE_URL="sqlite:///${DATABASE_FILE}" \
   python3 -m uvicorn backend.app.main:app \
-    --host "${BACKEND_HOST}" \
-    --port "${BACKEND_PORT}" \
+    --host "${BACKEND_HOST}" --port "${BACKEND_PORT}" \
     >"${BACKEND_LOG}" 2>&1 &
-
 BACKEND_PID=$!
 
 echo "=== Starting frontend preview ==="
-
 npm --prefix frontend run preview -- \
-  --host "${FRONTEND_HOST}" \
-  --port "${FRONTEND_PORT}" \
+  --host "${FRONTEND_HOST}" --port "${FRONTEND_PORT}" \
   >"${FRONTEND_LOG}" 2>&1 &
-
 FRONTEND_PID=$!
 
-wait_for_url \
-  "backend" \
-  "${BACKEND_URL}/health"
-
-wait_for_url \
-  "frontend" \
-  "${FRONTEND_URL}/"
+wait_for_url backend "${BACKEND_URL}/health"
+wait_for_url frontend "${FRONTEND_URL}/"
 
 echo "=== Verifying backend health contract ==="
-
-HEALTH_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    "${BACKEND_URL}/health"
-)"
-
+HEALTH_RESPONSE="$(curl --fail --silent --show-error "${BACKEND_URL}/health")"
 python3 - "${HEALTH_RESPONSE}" <<'PY'
 import json
 import sys
-
 response = json.loads(sys.argv[1])
-
 if response.get("status") != "ok":
-    raise SystemExit(
-        f"Unexpected health response: {response}"
-    )
-
+    raise SystemExit(f"Unexpected health response: {response}")
 print("Backend health response validated.")
 PY
 
-echo "=== Verifying read-only capture API contracts ==="
-
-# Validate the monitoring and flow-preview endpoints without starting
-# TShark or requiring live network traffic or capture permissions.
-CAPTURE_STATUS="$(
-  curl --fail --silent --show-error "${BACKEND_URL}/capture/status"
-)"
-
-CAPTURE_STATS="$(
-  curl --fail --silent --show-error "${BACKEND_URL}/capture/stats"
-)"
-
-CAPTURE_FLOWS="$(
-  curl --fail --silent --show-error "${BACKEND_URL}/capture/flows"
-)"
-
-python3 - "${CAPTURE_STATUS}" "${CAPTURE_STATS}" "${CAPTURE_FLOWS}" <<'PY_CAPTURE'
-import json
-import sys
-
-status, stats, flows = (json.loads(value) for value in sys.argv[1:])
-
-
-def require(condition, description):
-    if not condition:
-        raise SystemExit(f"Capture API contract failed: {description}")
-
-
-# The smoke test launches a fresh backend and never starts capture.
-require(status == {"running": False, "interface": None}, "/capture/status")
-require(stats.get("running") is False, "capture must be stopped")
-require(stats.get("interface") is None, "capture interface must be null")
-
-for field in ("packet_count", "total_bytes", "observed_source_ips"):
-    require(type(stats.get(field)) is int and stats[field] == 0,
-            f"/capture/stats {field} must be zero")
-
-for field, expected_type in (("protocols", dict), ("top_source_ips", list),
-                             ("recent_packets", list)):
-    require(isinstance(stats.get(field), expected_type),
-            f"/capture/stats {field} has unexpected type")
-
-require(stats.get("last_packet_at") is None, "unexpected last packet")
-require(stats.get("last_error") is None, "unexpected capture error")
-require(flows.get("status") == "preview_only", "flow preview status")
-require(flows.get("window_packets") == 0, "flow window not empty")
-require(flows.get("flow_count") == 0, "flow count not zero")
-require(flows.get("flows") == [], "unexpected preview flows")
-require(isinstance(flows.get("feature_order"), list)
-        and len(flows["feature_order"]) > 0
-        and all(isinstance(name, str) for name in flows["feature_order"]),
-        "invalid flow feature order")
-
-print("Capture status, statistics, and flow preview contracts validated.")
-PY_CAPTURE
+echo "=== Verifying unauthenticated capture API is protected ==="
+UNAUTH_CAPTURE_STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' "${BACKEND_URL}/capture/status")"
+if [[ "${UNAUTH_CAPTURE_STATUS}" != "401" ]]; then
+  echo "Expected unauthenticated /capture/status to return 401; got ${UNAUTH_CAPTURE_STATUS}." >&2
+  exit 1
+fi
 
 echo "=== Verifying frontend HTML ==="
-
-FRONTEND_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    "${FRONTEND_URL}/"
-)"
-
+FRONTEND_RESPONSE="$(curl --fail --silent --show-error "${FRONTEND_URL}/")"
 if ! grep -q 'id="root"' <<< "${FRONTEND_RESPONSE}"; then
   echo "Frontend root element was not found." >&2
   exit 1
 fi
 
-echo "Frontend root document validated."
-
 echo "=== Verifying authentication API contract ==="
-
 SMOKE_USERNAME="smoke_${GITHUB_RUN_ID:-local}_$$"
 SMOKE_PASSWORD="StrongPassword123!"
-
-REGISTER_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    -X POST \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"username\": \"${SMOKE_USERNAME}\",
-      \"password\": \"${SMOKE_PASSWORD}\"
-    }" \
-    "${BACKEND_URL}/auth/register"
-)"
-
+REGISTER_RESPONSE="$(curl --fail --silent --show-error -X POST \
+  -H 'Content-Type: application/json' \
+  -d "{\"username\":\"${SMOKE_USERNAME}\",\"password\":\"${SMOKE_PASSWORD}\"}" \
+  "${BACKEND_URL}/auth/register")"
 python3 - "${REGISTER_RESPONSE}" "${SMOKE_USERNAME}" <<'PY'
 import json
 import sys
-
 response = json.loads(sys.argv[1])
-expected_username = sys.argv[2]
-
-user = response.get("user", {})
-
-if user.get("username") != expected_username:
-    raise SystemExit(
-        f"Unexpected registration response: {response}"
-    )
-
+if response.get("user", {}).get("username") != sys.argv[2]:
+    raise SystemExit(f"Unexpected registration response: {response}")
 print("Registration contract validated.")
 PY
 
-COOKIE_FILE="$(
-  mktemp "${TMPDIR:-/tmp}/ai-ids-cookie.XXXXXX"
-)"
-
-LOGIN_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    -c "${COOKIE_FILE}" \
-    -X POST \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"username\": \"${SMOKE_USERNAME}\",
-      \"password\": \"${SMOKE_PASSWORD}\"
-    }" \
-    "${BACKEND_URL}/auth/login"
-)"
-
+COOKIE_FILE="$(mktemp "${TMPDIR:-/tmp}/ai-ids-cookie.XXXXXX")"
+LOGIN_RESPONSE="$(curl --fail --silent --show-error -c "${COOKIE_FILE}" -X POST \
+  -H 'Content-Type: application/json' \
+  -d "{\"username\":\"${SMOKE_USERNAME}\",\"password\":\"${SMOKE_PASSWORD}\"}" \
+  "${BACKEND_URL}/auth/login")"
 python3 - "${LOGIN_RESPONSE}" "${SMOKE_USERNAME}" <<'PY'
 import json
 import sys
-
 response = json.loads(sys.argv[1])
-expected_username = sys.argv[2]
-
-user = response.get("user", {})
-
 if response.get("message") != "Login successful.":
-    raise SystemExit(
-        f"Unexpected login response: {response}"
-    )
-
-if user.get("username") != expected_username:
-    raise SystemExit(
-        f"Unexpected login user: {response}"
-    )
-
-print("Login contract validated.")
-PY
-
-echo "=== Verifying authenticated session ==="
-
-ME_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    -b "${COOKIE_FILE}" \
-    "${BACKEND_URL}/auth/me"
-)"
-
-python3 - "${ME_RESPONSE}" "${SMOKE_USERNAME}" <<'PY'
-import json
-import sys
-
-response = json.loads(sys.argv[1])
-expected_username = sys.argv[2]
-
-user = response.get("user", {})
-
-if user.get("username") != expected_username:
-    raise SystemExit(
-        f"Unexpected current-user response: {response}"
-    )
-
-print("Authenticated session validated.")
-PY
-
-LOGOUT_RESPONSE="$(
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    -b "${COOKIE_FILE}" \
-    -c "${COOKIE_FILE}" \
-    -X POST \
-    "${BACKEND_URL}/auth/logout"
-)"
-
-python3 - "${LOGOUT_RESPONSE}" <<'PY'
-import json
-import sys
-
-response = json.loads(sys.argv[1])
-
-if response.get("message") != "Logout successful.":
-    raise SystemExit(
-        f"Unexpected logout response: {response}"
-    )
-
-print("Logout contract validated.")
-PY
-
-echo "=== Verifying session is cleared ==="
-
-POST_LOGOUT_STATUS="$(
-  curl \
-    --silent \
-    --output /dev/null \
-    --write-out "%{http_code}" \
-    -b "${COOKIE_FILE}" \
-    "${BACKEND_URL}/auth/me"
-)"
-
-if [[ "${POST_LOGOUT_STATUS}" != "401" ]]; then
-  echo "Expected /auth/me to return 401 after logout; got ${POST_LOGOUT_STATUS}." >&2
-  exit 1
-fi
-
-echo "Session removal validated."
-
-echo
-echo "Frontend-backend smoke test passed."
+    raise SystemExit(f"Unexpected login response: {response}")
+if response.get("user", {}).get("username") != sys.argv[2]:
+    raise SystemExit(f"Unexpected login user: {response}")

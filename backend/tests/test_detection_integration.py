@@ -20,13 +20,15 @@ VALID_FLOW = {
 }
 
 
-def test_ai_backend_detection_pipeline(client):
-    client.app.dependency_overrides[
+def test_ai_backend_detection_pipeline(
+    authenticated_client,
+):
+    authenticated_client.app.dependency_overrides[
         get_detection_model
     ] = lambda: AttackModel()
 
     try:
-        response = client.post(
+        response = authenticated_client.post(
             "/detection/analyze",
             json={
                 "flow": VALID_FLOW,
@@ -39,6 +41,7 @@ def test_ai_backend_detection_pipeline(client):
         data = response.json()
 
         assert data["status"] == "success"
+
         assert data["features"] == [
             1250.0,
             20.0,
@@ -46,22 +49,37 @@ def test_ai_backend_detection_pipeline(client):
             5000.0,
             25.0,
         ]
+
         assert data["inference"]["prediction"] == 1
+
         assert data["threat"]["detected"] is True
-        assert data["threat"]["attack_type"] == "ml_detected"
-        assert data["threat"]["classification"] == "high"
+
+        assert (
+            data["threat"]["attack_type"]
+            == "ml_detected"
+        )
+
+        assert (
+            data["threat"]["classification"]
+            == "high"
+        )
 
     finally:
-        client.app.dependency_overrides.clear()
+        authenticated_client.app.dependency_overrides.pop(
+            get_detection_model,
+            None,
+        )
 
 
-def test_signature_detection_integrates_with_backend(client):
-    client.app.dependency_overrides[
+def test_signature_detection_integrates_with_backend(
+    authenticated_client,
+):
+    authenticated_client.app.dependency_overrides[
         get_detection_model
     ] = lambda: BenignModel()
 
     try:
-        response = client.post(
+        response = authenticated_client.post(
             "/detection/analyze",
             json={
                 "flow": VALID_FLOW,
@@ -76,23 +94,42 @@ def test_signature_detection_integrates_with_backend(client):
         data = response.json()
 
         assert data["inference"]["prediction"] == 0
+
         assert data["signature"]["detected"] is True
-        assert data["signature"]["attack_type"] == "brute_force"
+
+        assert (
+            data["signature"]["attack_type"]
+            == "brute_force"
+        )
+
         assert data["threat"]["detected"] is True
-        assert data["threat"]["attack_type"] == "brute_force"
-        assert data["threat"]["classification"] == "high"
+
+        assert (
+            data["threat"]["attack_type"]
+            == "brute_force"
+        )
+
+        assert (
+            data["threat"]["classification"]
+            == "high"
+        )
 
     finally:
-        client.app.dependency_overrides.clear()
+        authenticated_client.app.dependency_overrides.pop(
+            get_detection_model,
+            None,
+        )
 
 
-def test_benign_flow_returns_normal_threat(client):
-    client.app.dependency_overrides[
+def test_benign_flow_returns_normal_threat(
+    authenticated_client,
+):
+    authenticated_client.app.dependency_overrides[
         get_detection_model
     ] = lambda: BenignModel()
 
     try:
-        response = client.post(
+        response = authenticated_client.post(
             "/detection/analyze",
             json={
                 "flow": VALID_FLOW,
@@ -106,21 +143,31 @@ def test_benign_flow_returns_normal_threat(client):
 
         assert data["inference"]["prediction"] == 0
         assert data["signature"]["detected"] is False
+
         assert data["threat"]["detected"] is False
         assert data["threat"]["threat_score"] == 0
-        assert data["threat"]["classification"] == "normal"
+
+        assert (
+            data["threat"]["classification"]
+            == "normal"
+        )
 
     finally:
-        client.app.dependency_overrides.clear()
+        authenticated_client.app.dependency_overrides.pop(
+            get_detection_model,
+            None,
+        )
 
 
-def test_invalid_flow_rejected(client):
-    client.app.dependency_overrides[
+def test_invalid_flow_rejected(
+    authenticated_client,
+):
+    authenticated_client.app.dependency_overrides[
         get_detection_model
     ] = lambda: BenignModel()
 
     try:
-        response = client.post(
+        response = authenticated_client.post(
             "/detection/analyze",
             json={
                 "flow": {
@@ -133,11 +180,16 @@ def test_invalid_flow_rejected(client):
         assert response.status_code == 400
 
     finally:
-        client.app.dependency_overrides.clear()
+        authenticated_client.app.dependency_overrides.pop(
+            get_detection_model,
+            None,
+        )
 
 
-def test_missing_model_configuration(client):
-    response = client.post(
+def test_missing_model_configuration(
+    authenticated_client,
+):
+    response = authenticated_client.post(
         "/detection/analyze",
         json={
             "flow": VALID_FLOW,
@@ -146,7 +198,7 @@ def test_missing_model_configuration(client):
     )
 
     assert response.status_code == 503
-    assert (
-        response.json()["detail"]
-        == "Detection model is not configured."
+
+    assert response.json()["detail"] == (
+        "Detection model is not configured."
     )

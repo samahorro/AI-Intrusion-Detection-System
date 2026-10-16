@@ -111,3 +111,27 @@ def registered_user(
     assert response.status_code == 201
 
     return sample_user
+
+
+@pytest.fixture
+def authenticated_client(
+    client,
+    sample_user,
+):
+    """Return a client with a valid authenticated session."""
+
+    register_response = client.post(
+        "/auth/register",
+        json=sample_user,
+    )
+
+    assert register_response.status_code == 201
+
+    login_response = client.post(
+        "/auth/login",
+        json=sample_user,
+    )
+
+    assert login_response.status_code == 200
+
+    return client

@@ -9,9 +9,14 @@ from ml.models.inference import load_model, run_inference
 from ml.preprocessing.flow_preprocessor import preprocess_flow
 from ml.scoring.threat_scoring import score_threat
 
+from ..auth.dependencies import require_authenticated_user
+
 router = APIRouter(
     prefix="/detection",
     tags=["detection"],
+    dependencies=[
+        Depends(require_authenticated_user),
+    ],
 )
 
 

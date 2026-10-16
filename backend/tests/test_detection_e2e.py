@@ -30,7 +30,7 @@ def save_model(tmp_path, model):
 
 
 def test_detection_e2e_ml_attack(
-    client,
+    authenticated_client,
     tmp_path,
     monkeypatch,
 ):
@@ -44,7 +44,7 @@ def test_detection_e2e_ml_attack(
         str(model_path),
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/detection/analyze",
         json={
             "flow": VALID_FLOW,
@@ -72,13 +72,22 @@ def test_detection_e2e_ml_attack(
     assert data["signature"]["detected"] is False
 
     assert data["threat"]["detected"] is True
-    assert data["threat"]["attack_type"] == "ml_detected"
+
+    assert (
+        data["threat"]["attack_type"]
+        == "ml_detected"
+    )
+
     assert data["threat"]["threat_score"] == 100
-    assert data["threat"]["classification"] == "high"
+
+    assert (
+        data["threat"]["classification"]
+        == "high"
+    )
 
 
 def test_detection_e2e_benign_flow(
-    client,
+    authenticated_client,
     tmp_path,
     monkeypatch,
 ):
@@ -92,7 +101,7 @@ def test_detection_e2e_benign_flow(
         str(model_path),
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/detection/analyze",
         json={
             "flow": VALID_FLOW,
@@ -107,16 +116,21 @@ def test_detection_e2e_benign_flow(
     assert data["status"] == "success"
 
     assert data["inference"]["prediction"] == 0
+
     assert data["signature"]["detected"] is False
 
     assert data["threat"]["detected"] is False
     assert data["threat"]["attack_type"] is None
     assert data["threat"]["threat_score"] == 0
-    assert data["threat"]["classification"] == "normal"
+
+    assert (
+        data["threat"]["classification"]
+        == "normal"
+    )
 
 
 def test_detection_e2e_signature_attack(
-    client,
+    authenticated_client,
     tmp_path,
     monkeypatch,
 ):
@@ -130,7 +144,7 @@ def test_detection_e2e_signature_attack(
         str(model_path),
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/detection/analyze",
         json={
             "flow": VALID_FLOW,
@@ -147,10 +161,24 @@ def test_detection_e2e_signature_attack(
     assert data["inference"]["prediction"] == 0
 
     assert data["signature"]["detected"] is True
-    assert data["signature"]["attack_type"] == "brute_force"
+
+    assert (
+        data["signature"]["attack_type"]
+        == "brute_force"
+    )
+
     assert data["signature"]["severity"] == "high"
 
     assert data["threat"]["detected"] is True
-    assert data["threat"]["attack_type"] == "brute_force"
+
+    assert (
+        data["threat"]["attack_type"]
+        == "brute_force"
+    )
+
     assert data["threat"]["threat_score"] == 90
-    assert data["threat"]["classification"] == "high"
+
+    assert (
+        data["threat"]["classification"]
+        == "high"
+    )

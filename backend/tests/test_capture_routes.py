@@ -4,7 +4,7 @@ from backend.app.capture import routes as capture_routes
 
 
 def test_capture_status_stopped(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     monkeypatch.setattr(
@@ -13,7 +13,7 @@ def test_capture_status_stopped(
         lambda: False,
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/capture/status"
     )
 
@@ -26,7 +26,7 @@ def test_capture_status_stopped(
 
 
 def test_capture_status_running(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     monkeypatch.setattr(
@@ -41,7 +41,7 @@ def test_capture_status_running(
         "Wi-Fi",
     )
 
-    response = client.get(
+    response = authenticated_client.get(
         "/capture/status"
     )
 
@@ -54,7 +54,7 @@ def test_capture_status_running(
 
 
 def test_start_capture_success(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     start_mock = MagicMock(
@@ -70,7 +70,7 @@ def test_start_capture_success(
         start_mock,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={
             "interface": "Wi-Fi",
@@ -90,7 +90,7 @@ def test_start_capture_success(
 
 
 def test_start_capture_rejects_duplicate(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     def raise_duplicate(interface):
@@ -104,7 +104,7 @@ def test_start_capture_rejects_duplicate(
         raise_duplicate,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={
             "interface": "Wi-Fi",
@@ -119,7 +119,7 @@ def test_start_capture_rejects_duplicate(
 
 
 def test_start_capture_invalid_interface(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     def raise_invalid_interface(interface):
@@ -133,7 +133,7 @@ def test_start_capture_invalid_interface(
         raise_invalid_interface,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={
             "interface": "invalid",
@@ -148,7 +148,7 @@ def test_start_capture_invalid_interface(
 
 
 def test_start_capture_service_failure(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     def raise_failure(interface):
@@ -162,7 +162,7 @@ def test_start_capture_service_failure(
         raise_failure,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/start",
         json={
             "interface": "Wi-Fi",
@@ -177,7 +177,7 @@ def test_start_capture_service_failure(
 
 
 def test_stop_capture_success(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     stop_mock = MagicMock(
@@ -193,7 +193,7 @@ def test_stop_capture_success(
         stop_mock,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/stop"
     )
 
@@ -208,7 +208,7 @@ def test_stop_capture_success(
 
 
 def test_stop_capture_rejects_inactive(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     def raise_inactive():
@@ -222,7 +222,7 @@ def test_stop_capture_rejects_inactive(
         raise_inactive,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/stop"
     )
 
@@ -234,7 +234,7 @@ def test_stop_capture_rejects_inactive(
 
 
 def test_stop_capture_service_failure(
-    client,
+    authenticated_client,
     monkeypatch,
 ):
     def raise_failure():
@@ -248,7 +248,7 @@ def test_stop_capture_service_failure(
         raise_failure,
     )
 
-    response = client.post(
+    response = authenticated_client.post(
         "/capture/stop"
     )
 

@@ -41,11 +41,89 @@ def get_db():
         db.close()
 
 
-def init_db():
-    """Create all database tables."""
+def seed_default_user():
+    """Create the configured development user if needed."""
 
-    # Import models only after Base has been created.
+    from .auth.validation import (
+        hash_password,
+        validate_password,
+        validate_username,
+    )
+    from .models.user import User
+
+    username = os.getenv(
+        "DEFAULT_USERNAME",
+        "",
+    ).strip()
+
+    password = os.getenv(
+        "DEFAULT_PASSWORD",
+        "",
+    )
+
+    if not username or not password:
+        return False
+
+    username_valid, username_error = (
+        validate_username(username)
+    )
+
+    if not username_valid:
+        raise RuntimeError(
+            "Invalid DEFAULT_USERNAME: "
+            f"{username_error}"
+        )
+
+    password_valid, password_error = (
+        validate_password(password)
+    )
+
+    if not password_valid:
+        raise RuntimeError(
+            "Invalid DEFAULT_PASSWORD: "
+            f"{password_error}"
+        )
+
+    db = SessionLocal()
+
+    try:
+        existing_user = (
+            db.query(User)
+            .filter(
+                User.username == username
+            )
+            .first()
+        )
+
+        if existing_user is not None:
+            return False
+
+        user = User(
+            username=username,
+            password_hash=hash_password(
+                password
+            ),
+        )
+
+        db.add(user)
+        db.commit()
+
+        return True
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+def init_db():
+    """Create all database tables and seed configured users."""
+
     from .models.network_event import NetworkEvent  # noqa: F401
     from .models.user import User  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+    seed_default_user()
