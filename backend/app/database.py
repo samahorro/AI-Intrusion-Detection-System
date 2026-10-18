@@ -121,9 +121,12 @@ def seed_default_user():
 def init_db():
     """Create all database tables and seed configured users."""
 
+    from .models.login_attempt import LoginAttempt  # noqa: F401
     from .models.network_event import NetworkEvent  # noqa: F401
     from .models.user import User  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(
+        bind=engine
+    )
 
     seed_default_user()
