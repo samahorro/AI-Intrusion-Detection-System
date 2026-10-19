@@ -11,6 +11,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models.user import User
+from .login_security import (
+    is_account_locked,
+    record_login_attempt,
+)
 from .validation import (
     hash_password,
     validate_password,
@@ -57,7 +61,9 @@ def register(
         )
 
     password_valid, password_error = (
-        validate_password(data.password)
+        validate_password(
+            data.password
+        )
     )
 
     if not password_valid:
@@ -68,7 +74,9 @@ def register(
 
     existing_user = (
         db.query(User)
-        .filter(User.username == username)
+        .filter(
+            User.username == username
+        )
         .first()
     )
 
@@ -117,33 +125,102 @@ def login(
 
     user = (
         db.query(User)
-        .filter(User.username == username)
+        .filter(
+            User.username == username
+        )
         .first()
     )
 
-    # Return the same error for an invalid username
-    # and an invalid password.
-    if (
-        user is None
-        or not verify_password(
-            data.password,
-            user.password_hash,
+    # Do not reveal whether an unknown
+    # username exists in the database.
+    if user is None:
+        record_login_attempt(
+            db,
+            username=username,
+            success=False,
+            reason="unknown_username",
         )
-    ):
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
         )
 
+    # Check whether too many recent
+    # password failures locked the account.
+    if is_account_locked(
+        db,
+        username,
+    ):
+        record_login_attempt(
+            db,
+            username=username,
+            success=False,
+            reason="account_locked",
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=(
+                "Account temporarily locked due to "
+                "too many failed login attempts."
+            ),
+        )
+
+    # Check the submitted password.
+    if not verify_password(
+        data.password,
+        user.password_hash,
+    ):
+        record_login_attempt(
+            db,
+            username=username,
+            success=False,
+            reason="invalid_password",
+        )
+
+        # The fifth failed password attempt
+        # immediately locks the account.
+        if is_account_locked(
+            db,
+            username,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail=(
+                    "Account temporarily locked due to "
+                    "too many failed login attempts."
+                ),
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password.",
+        )
+
+    # Record the successful authentication.
+    record_login_attempt(
+        db,
+        username=username,
+        success=True,
+        reason="login_success",
+    )
+
     request.session.clear()
 
-    request.session["user_id"] = user.id
-    request.session["username"] = user.username
+    request.session[
+        "user_id"
+    ] = user.id
+
+    request.session[
+        "username"
+    ] = user.username
 
     return {
         "message": "Login successful.",
         "user": user.to_dict(),
     }
+
 
 @router.get("/me")
 def get_current_user(
@@ -152,7 +229,9 @@ def get_current_user(
 ):
     """Return the currently authenticated user."""
 
-    user_id = request.session.get("user_id")
+    user_id = request.session.get(
+        "user_id"
+    )
 
     if user_id is None:
         raise HTTPException(
@@ -162,7 +241,9 @@ def get_current_user(
 
     user = (
         db.query(User)
-        .filter(User.id == user_id)
+        .filter(
+            User.id == user_id
+        )
         .first()
     )
 
@@ -177,6 +258,7 @@ def get_current_user(
     return {
         "user": user.to_dict(),
     }
+
 
 @router.post("/logout")
 def logout(request: Request):
