@@ -18,7 +18,7 @@ AEGIS is a network monitoring and experimental intrusion detection platform comb
 
 ### Sign-in experience
 
-![AEGIS sign-in page with animated globe](docs/screenshots/login.png)
+![AEGIS sign-in page with animated globe](docs/screenshots/AEGIS DASHBOARD.png) 
 
 *AEGIS authentication interface with the animated globe design.*
 
@@ -30,7 +30,7 @@ AEGIS is a network monitoring and experimental intrusion detection platform comb
 
 ### AI detection panel
 
-![AEGIS experimental Random Forest predictions](docs/screenshots/ai-detection.png)
+![AEGIS experimental Random Forest predictions](docs/.png)
 
 *Experimental prediction interface. Include this screenshot only after model loading and inference have been verified.*
 
