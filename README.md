@@ -6,33 +6,39 @@ AEGIS is a network monitoring and experimental intrusion detection platform comb
 
 > **Development status:** AEGIS is a capstone prototype, not a production-ready IDS. The Random Forest inference path is experimental: equivalence between live-capture features and the CICIDS2017 training features has not yet been established. Do not treat predictions as independently verified security alerts.
 
-## Screenshots
 
-> Add the screenshots to `docs/screenshots/` using the filenames below. GitHub will display them directly in this README. Capture the application after starting the backend and frontend, and avoid exposing real IP addresses, account details, or sensitive alerts in public screenshots.
+## AEGIS Application Screenshots
 
-### Security Console
+### Security Console Dashboard
 
-![AEGIS Security Console showing live packet capture and network telemetry](docs/screenshots/security-console.png)
+The AEGIS Security Console provides visibility into live network
+activity, packet capture statistics, monitored hosts, and
+experimental intrusion detection.
 
-*AEGIS dashboard with capture controls, traffic statistics, and experimental detection status.*
+![AEGIS Security Dashboard](docs/AEGIS%20DASHBOARD.png)
 
-### Sign-in experience
+### Login Interface
 
-![AEGIS sign-in page with animated globe](docs/screenshots/AEGIS DASHBOARD.png) 
+AEGIS includes a secure authentication interface with an
+animated network visualization.
 
-*AEGIS authentication interface with the animated globe design.*
+![AEGIS Login Page](docs/AEGISLOGIN.png)
 
-### Account registration (local development)
+### Network Traffic Capture
 
-![AEGIS create account page](docs/screenshots/signup.png)
+AEGIS uses TShark to capture network traffic and process
+packets into network-flow information.
 
-*Local signup experience. Registration policies should be reviewed before public deployment.*
+![AEGIS Network Capture](docs/NETWORK%20CAPTURE%20FLOW.png)
 
-### AI detection panel
+### AI Detection Dashboard
 
-![AEGIS experimental Random Forest predictions](docs/.png)
+The experimental intrusion detection system uses a
+Random Forest model trained on CICIDS2017 data to
+classify network-flow activity.
 
-*Experimental prediction interface. Include this screenshot only after model loading and inference have been verified.*
+![AEGIS AI Detection](docs/AI%20SCORE%20DETECTIONS.png)
+
 
 ## Key Features
 
