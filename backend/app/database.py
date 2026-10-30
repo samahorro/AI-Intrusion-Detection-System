@@ -1,3 +1,4 @@
+
 import os
 
 from sqlalchemy import create_engine
@@ -119,8 +120,9 @@ def seed_default_user():
 
 
 def init_db():
-    """Create all database tables and seed configured users."""
+    """Create database tables and seed configured users."""
 
+    from .models.blocked_ip import BlockedIP  # noqa: F401
     from .models.login_attempt import LoginAttempt  # noqa: F401
     from .models.network_event import NetworkEvent  # noqa: F401
     from .models.user import User  # noqa: F401
