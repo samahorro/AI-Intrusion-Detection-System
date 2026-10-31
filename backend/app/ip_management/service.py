@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from ..models.blocked_ip import BlockedIP
 from .firewall import SimulatedFirewall
 from .validation import validate_ip_address
-from ..models.blocked_ip import BlockedIP
 
 
 @dataclass(frozen=True)
@@ -52,11 +52,12 @@ class IPBlockingService:
 
         normalized = validate_ip_address(ip_address)
 
-        if reason is not None:
-            if not isinstance(reason, str) or len(reason) > 255:
-                raise ValueError(
-                    "Block reason must be text of 255 characters or fewer."
-                )
+        if reason is not None and (
+            not isinstance(reason, str) or len(reason) > 255
+        ):
+            raise ValueError(
+                "Block reason must be text of 255 characters or fewer."
+            )
 
         record = self.get_record(normalized)
 
