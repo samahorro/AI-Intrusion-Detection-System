@@ -70,3 +70,96 @@ describe("Alerts", () => {
     expect(alertCards[1]).toHaveTextContent("MEDIUM");
   });
 });
+
+// Sprint 4 - SOC 2 CC7.3 edge-case validation
+it("shows a safe empty state when there are no alerts", () => {
+  render(<Alerts alerts={[]} />);
+
+  expect(
+    screen.getByText("No security alerts available."),
+  ).toBeInTheDocument();
+});
+
+it("handles missing security event fields safely", () => {
+  const incompleteAlert = [
+    {
+      id: 100,
+      severity: "high" as const,
+      attackType: "Port Scan",
+      timestamp: "2026-10-31 12:00",
+    },
+  ];
+
+  render(<Alerts alerts={incompleteAlert} />);
+
+  const alertCard = screen.getByRole("article");
+
+  expect(alertCard).toHaveTextContent("Port Scan");
+  expect(alertCard).toHaveTextContent("Source IP: Unavailable");
+  expect(alertCard).toHaveTextContent("Port: Unavailable");
+  expect(alertCard).toHaveTextContent(
+    "AI Confidence: Unavailable",
+  );
+});
+
+it("handles missing attack type safely", () => {
+  const incompleteAlert = [
+    {
+      id: 101,
+      severity: "medium" as const,
+      ip: "192.168.1.50",
+      port: 443,
+      timestamp: "2026-10-31 12:00",
+      confidence: 0.81,
+    },
+  ];
+
+  render(<Alerts alerts={incompleteAlert} />);
+
+  expect(
+    screen.getByText("Unknown Event"),
+  ).toBeInTheDocument();
+});
+
+it("handles invalid confidence values safely", () => {
+  const invalidAlert = [
+    {
+      id: 102,
+      severity: "high" as const,
+      ip: "192.168.1.21",
+      port: 22,
+      attackType: "Port Scan",
+      timestamp: "2026-10-31 12:00",
+      confidence: 1.5,
+    },
+  ];
+
+  render(<Alerts alerts={invalidAlert} />);
+
+  expect(
+    screen.getByText("Unavailable"),
+  ).toBeInTheDocument();
+
+  expect(
+    screen.queryByText("150%"),
+  ).not.toBeInTheDocument();
+});
+
+it("handles missing severity safely", () => {
+  const incompleteAlert = [
+    {
+      id: 103,
+      ip: "192.168.1.45",
+      port: 443,
+      attackType: "Suspicious Traffic",
+      timestamp: "2026-10-31 12:00",
+      confidence: 0.81,
+    },
+  ];
+
+  render(<Alerts alerts={incompleteAlert} />);
+
+  expect(
+    screen.getByText("Severity: Unavailable"),
+  ).toBeInTheDocument();
+});
