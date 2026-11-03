@@ -7,7 +7,15 @@ import {
   type SecurityAlertsResponse,
 } from "../services/captureService";
 
-const formatTime = (timestamp: string) => {
+// ============================================================
+// KAN-253: Signature-Based Security Alerts
+// ============================================================
+
+const formatTime = (timestamp: string | null | undefined) => {
+  if (!timestamp) {
+    return "Unavailable";
+  }
+
   const date = new Date(timestamp);
 
   return Number.isNaN(date.getTime())
@@ -22,13 +30,19 @@ export default function Alerts() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // KAN-253: Fetch actual signature detections.
+  // ==========================================================
+  // Retrieve real security alerts every 2 seconds
+  // ==========================================================
+
   useEffect(() => {
     let active = true;
     let pending = false;
 
     async function refreshAlerts() {
-      if (pending) return;
+      if (pending) {
+        return;
+      }
+
       pending = true;
 
       try {
@@ -42,6 +56,7 @@ export default function Alerts() {
       } catch (err) {
         if (active) {
           setData(null);
+
           setError(
             err instanceof Error
               ? err.message
@@ -50,7 +65,10 @@ export default function Alerts() {
         }
       } finally {
         pending = false;
-        if (active) setLoading(false);
+
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
@@ -67,7 +85,19 @@ export default function Alerts() {
     };
   }, []);
 
+  // ==========================================================
+  // Security alert statistics
+  // ==========================================================
+
   const alerts = data?.alerts ?? [];
+
+  const portScanCount = alerts.filter(
+    (alert) => alert.attack_type === "port_scan",
+  ).length;
+
+  // ==========================================================
+  // AEGIS Alerts Dashboard
+  // ==========================================================
 
   return (
     <main className="page">
@@ -84,28 +114,36 @@ export default function Alerts() {
         </Link>
       </p>
 
+      {/* Security alert overview */}
+
       <section className="metrics-grid">
         <article className="alert-card">
           <h3>Total Security Alerts</h3>
+
           <strong>
-            {error ? "Unavailable" : data?.alert_count ?? 0}
+            {error
+              ? "Unavailable"
+              : data
+                ? data.alert_count
+                : "Loading"}
           </strong>
         </article>
 
         <article className="alert-card">
           <h3>Port Scan Detections</h3>
+
           <strong>
             {error
               ? "Unavailable"
-              : alerts.filter(
-                  (alert) =>
-                    alert.attack_type === "port_scan",
-                ).length}
+              : data
+                ? portScanCount
+                : "Loading"}
           </strong>
         </article>
 
         <article className="alert-card">
           <h3>Capture Status</h3>
+
           <strong>
             {error
               ? "Unavailable"
@@ -118,24 +156,32 @@ export default function Alerts() {
         </article>
       </section>
 
+      {/* Alert retrieval errors */}
+
       {error && (
         <p role="alert" style={{ color: "#dc2626" }}>
           Security alert retrieval error: {error}
         </p>
       )}
 
-      {loading && (
+      {/* Loading state */}
+
+      {loading && !error && (
         <p>Loading security alerts...</p>
       )}
 
+      {/* No detections */}
+
       {!loading && !error && alerts.length === 0 && (
         <p>
-          No signature-based intrusions have been detected
-          during the current monitoring session.
+          No signature-based security alerts have been
+          recorded during the current monitoring session.
         </p>
       )}
 
-      {!error && (
+      {/* Real security alerts */}
+
+      {!error && alerts.length > 0 && (
         <div className="alert-cards">
           {alerts.map((alert, index) => (
             <article
@@ -145,32 +191,32 @@ export default function Alerts() {
               <h3>
                 {alert.attack_type === "port_scan"
                   ? "Port Scan Detected"
-                  : alert.attack_type}
+                  : alert.attack_type || "Unknown Event"}
               </h3>
 
               <p>
                 <strong>Severity:</strong>{" "}
-                {alert.severity}
+                {alert.severity || "Unavailable"}
               </p>
 
               <p>
                 <strong>Source IP:</strong>{" "}
-                {alert.source_ip}
+                {alert.source_ip || "Unavailable"}
               </p>
 
               <p>
                 <strong>Destination IP:</strong>{" "}
-                {alert.destination_ip}
+                {alert.destination_ip || "Unavailable"}
               </p>
 
               <p>
                 <strong>Distinct Ports Scanned:</strong>{" "}
-                {alert.ports_scanned}
+                {alert.ports_scanned ?? "Unavailable"}
               </p>
 
               <p>
                 <strong>Detection Rule:</strong>{" "}
-                {alert.rule_id}
+                {alert.rule_id || "Unavailable"}
               </p>
 
               <p>
@@ -180,7 +226,7 @@ export default function Alerts() {
 
               <p>
                 <strong>Status:</strong>{" "}
-                {alert.status}
+                {alert.status || "Unavailable"}
               </p>
 
               <p>
@@ -191,6 +237,8 @@ export default function Alerts() {
           ))}
         </div>
       )}
+
+      {/* Detection disclaimer */}
 
       <p style={{ marginTop: 24, opacity: 0.7 }}>
         Signature detections are not automatically

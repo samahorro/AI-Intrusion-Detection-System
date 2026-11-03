@@ -1,0 +1,43 @@
+name: CC8.1 Change Management Evidence
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  change-control-verification:
+    name: Change control verification and evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Capture commit and pull request context
+        run: |
+          python scripts/ci/collect_change_evidence.py \
+            --output evidence/cc8.1-change-context.json
+
+      - name: Test release validation and evidence generation
+        run: |
+          python -m unittest discover -s scripts/ci -p 'test_*.py' -v
+
+      - name: Upload CC8.1 traceability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc8-1-change-context-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/cc8.1-change-context.json
+          if-no-files-found: warn
+          retention-days: 30

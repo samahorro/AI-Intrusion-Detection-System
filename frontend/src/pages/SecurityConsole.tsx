@@ -420,7 +420,7 @@ export default function SecurityConsole() {
   {refreshAt || "Connecting..."}
 
   {/* User profile dropdown */}
-  <ProfileMenu username="demo_user" />
+  <ProfileMenu />
 </div>
 
         </header>

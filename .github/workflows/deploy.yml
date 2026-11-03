@@ -7,18 +7,63 @@ on:
     types:
       - completed
 
+# The workflow_run trigger runs with elevated access, so process only trusted
+# push-to-main runs from this repository; never a pull request or fork.
 permissions:
   contents: read
+  actions: read
+
+# Prevent overlapping deployments triggered by concurrent main updates.
+concurrency:
+  group: backend-render-deployment
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy Backend to Render
+    name: Verify release checks and deploy to Render
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
+      - name: Checkout the trusted main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify all required workflows for the exact main commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/ci/verify_release_checks.py \
+            --repository "$RELEASE_REPOSITORY" \
+            --sha "$RELEASE_SHA" \
+            --branch main \
+            --timeout 600 \
+            --interval 15 \
+            --output evidence/cc8.1-deployment-gate.json
+
+      - name: Upload deployment gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc8-1-deployment-gate-${{ github.event.workflow_run.head_sha }}-${{ github.run_id }}
+          path: evidence/cc8.1-deployment-gate.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Trigger Render deployment
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
@@ -28,12 +73,10 @@ jobs:
             echo "RENDER_DEPLOY_HOOK_URL is not configured."
             exit 1
           fi
-
           curl \
             --fail \
             --show-error \
             --silent \
             --request POST \
             "${RENDER_DEPLOY_HOOK_URL}&ref=${DEPLOY_COMMIT}"
-
           echo "Render deployment triggered for commit ${DEPLOY_COMMIT}"
