@@ -8,6 +8,7 @@ import "./ProfileMenu.css";
 export function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
 
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -52,13 +53,15 @@ export function ProfileMenu() {
     if (isSigningOut) return;
 
     setIsSigningOut(true);
+    setSignOutError("");
 
     try {
       await logout();
       setIsOpen(false);
       navigate("/login", { replace: true });
-    } catch (error) {
-      console.error("Unable to sign out:", error);
+    } catch {
+      setSignOutError("Unable to sign out. Please check your connection and try again.");
+    } finally {
       setIsSigningOut(false);
     }
   }
@@ -192,6 +195,7 @@ export function ProfileMenu() {
 
             {isSigningOut ? "Signing out..." : "Sign out"}
           </button>
+          {signOutError && <p role="alert" className="aegis-profile__signout-error">{signOutError}</p>}
         </div>
       )}
     </div>
