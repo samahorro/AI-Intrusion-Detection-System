@@ -1,0 +1,40 @@
+name: Sprint 4 SOC 2 CC6.1 Evidence
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cc6-access-control:
+    name: CC6.1 access control validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install test dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run SOC 2 access-control tests and export results
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p evidence
+          python -m pytest backend/tests/test_soc2_access_control.py -v \
+            --junitxml=evidence/soc2-cc6.1-pytest.xml \
+            | tee evidence/soc2-cc6.1-test-output.txt
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soc2-cc6.1-evidence-${{ github.run_id }}
+          path: evidence/
+          retention-days: 30

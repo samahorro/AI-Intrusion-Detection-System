@@ -1,24 +1,21 @@
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../features/auth/useAuth";
 import "./ProfileMenu.css";
 
-type ProfileMenuProps = {
-  username?: string;
-};
-
-export function ProfileMenu({
-  username = "demo_user",
-}: ProfileMenuProps) {
+export function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const { logout } = useAuth();
+  const { state, logout } = useAuth();
+  const username = state.status === "authenticated"
+    ? state.session.user.username
+    : "Account";
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -162,6 +159,14 @@ export function ProfileMenu({
           </div>
 
           <div className="aegis-profile__divider" />
+
+          <Link
+            className="aegis-profile__account-link"
+            to="/account"
+            onClick={() => setIsOpen(false)}
+          >
+            View account
+          </Link>
 
           <button
             type="button"

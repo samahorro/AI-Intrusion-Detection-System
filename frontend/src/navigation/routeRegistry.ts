@@ -45,6 +45,15 @@ export const appRouteRegistry: readonly AppRouteDefinition[] = [
     showInPrimaryNavigation: true,
   },
   {
+    id: "console",
+    path: "/console",
+    label: "Security Console",
+    owner: "kevin",
+    area: "monitoring",
+    requiresAuth: true,
+    showInPrimaryNavigation: true,
+  },
+  {
     id: "account",
     path: "/account",
     label: "Account",
@@ -54,12 +63,13 @@ export const appRouteRegistry: readonly AppRouteDefinition[] = [
     showInPrimaryNavigation: true,
   },
   {
+    // Reserved for a future administration feature; do not link to an unbuilt page.
     id: "admin-users",
     path: "/admin/users",
     label: "Users",
     owner: "robert",
     area: "administration",
     requiresAuth: true,
-    showInPrimaryNavigation: true,
+    showInPrimaryNavigation: false,
   },
 ];

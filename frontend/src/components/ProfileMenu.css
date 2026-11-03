@@ -250,3 +250,21 @@
   z-index: 10002;
   pointer-events: auto;
 }
+
+/* Robert Sprint 4: accessible account navigation in the profile dropdown. */
+.aegis-profile__account-link {
+  display: block;
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #f1e8ff;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.aegis-profile__account-link:hover,
+.aegis-profile__account-link:focus-visible {
+  background: rgba(177, 130, 255, 0.18);
+  outline: 2px solid #c595ff;
+  outline-offset: 2px;
+}
