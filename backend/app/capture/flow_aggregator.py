@@ -193,3 +193,123 @@ def aggregate_packets(
         for flow_packets
         in grouped_packets.values()
     ]
+
+
+class FlowTracker:
+    """
+    Stateful TCP/UDP flow tracker for experimental IDS testing.
+
+    Emits finalized flows after inactivity, maximum duration,
+    TCP reset, completed TCP FIN exchange, or packet limit.
+
+    No ML inference or security alerts happen here.
+    """
+
+    def __init__(
+        self,
+        idle_timeout=30.0,
+        max_duration=120.0,
+        max_packets_per_flow=10000,
+    ):
+        self.idle_timeout = float(idle_timeout)
+        self.max_duration = float(max_duration)
+        self.max_packets_per_flow = int(max_packets_per_flow)
+
+        if self.idle_timeout <= 0 or self.max_duration <= 0:
+            raise ValueError("Flow timeouts must be positive")
+        if self.max_packets_per_flow <= 0:
+            raise ValueError("Packet limit must be positive")
+
+        self.active_flows = {}
+
+    def _key(self, packet):
+        endpoints = _flow_key(packet)
+        return (packet["protocol"], endpoints)
+
+    def _finalize(self, key, reason):
+        state = self.active_flows.pop(key)
+        result = _build_flow(state["packets"])
+        result["protocol"] = key[0]
+        result["completion_reason"] = reason
+        result["experimental"] = True
+        return result
+
+    def expire_flows(self, current_time):
+        """Finalize expired flows at a given epoch timestamp."""
+        completed = []
+
+        for key, state in list(self.active_flows.items()):
+            inactive = current_time - state["last_seen"]
+            age = current_time - state["first_seen"]
+
+            if inactive >= self.idle_timeout:
+                completed.append(
+                    self._finalize(key, "idle_timeout")
+                )
+            elif age >= self.max_duration:
+                completed.append(
+                    self._finalize(key, "max_duration")
+                )
+
+        return completed
+
+    def add_packet(self, packet):
+        """Process one normalized packet and return completed flows."""
+        timestamp = float(packet["timestamp"])
+
+        completed = self.expire_flows(timestamp)
+        key = self._key(packet)
+
+        if key not in self.active_flows:
+            self.active_flows[key] = {
+                "packets": [],
+                "first_seen": timestamp,
+                "last_seen": timestamp,
+                "fin_directions": set(),
+            }
+
+        state = self.active_flows[key]
+        state["packets"].append(packet)
+        state["last_seen"] = max(state["last_seen"], timestamp)
+
+        protocol = packet["protocol"]
+
+        if protocol == "TCP":
+            if packet.get("tcp_rst", False):
+                completed.append(
+                    self._finalize(key, "tcp_reset")
+                )
+                return completed
+
+            if packet.get("tcp_fin", False):
+                source = _endpoint(packet, "source")
+                destination = _endpoint(packet, "destination")
+                state["fin_directions"].add(
+                    (source, destination)
+                )
+
+                if len(state["fin_directions"]) >= 2:
+                    completed.append(
+                        self._finalize(key, "tcp_fin_both_directions")
+                    )
+                    return completed
+
+        if len(state["packets"]) >= self.max_packets_per_flow:
+            completed.append(
+                self._finalize(key, "packet_limit")
+            )
+
+        return completed
+
+    def flush(self):
+        """Finalize all active flows, such as when capture stops."""
+        return [
+            self._finalize(key, "capture_stopped")
+            for key in list(self.active_flows)
+        ]
+
+    def reset(self):
+        self.active_flows.clear()
+
+    def active_count(self):
+        return len(self.active_flows)
