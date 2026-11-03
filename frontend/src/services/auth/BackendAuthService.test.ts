@@ -56,6 +56,7 @@ describe("BackendAuthService", () => {
       displayName: "robert",
       role: "user",
       permissions: [],
+      createdAt: "2026-10-05T00:00:00+00:00",
     });
   });
 

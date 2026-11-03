@@ -10,6 +10,7 @@ export type AuthenticatedUser = {
   role: string;
   permissions: string[];
   email?: string;
+  createdAt?: string;
 };
 
 export type AuthSession = {
