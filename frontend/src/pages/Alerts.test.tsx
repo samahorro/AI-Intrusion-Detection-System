@@ -163,3 +163,71 @@ it("handles missing severity safely", () => {
     screen.getByText("Severity: Unavailable"),
   ).toBeInTheDocument();
 });
+
+// Sprint 4 - SOC 2 CC7.3 KAN-202
+it("handles multiple incomplete security events independently", () => {
+  const incompleteAlerts = [
+    {
+      id: 301,
+      severity: "high" as const,
+      attackType: "Port Scan",
+      timestamp: "2026-11-02 18:00",
+    },
+    {
+      id: 302,
+      severity: "medium" as const,
+      ip: "10.0.0.20",
+      attackType: "Suspicious Traffic",
+      confidence: 0.81,
+    },
+  ];
+
+  render(<Alerts alerts={incompleteAlerts} />);
+
+  const alertCards = screen.getAllByRole("article");
+
+  expect(alertCards).toHaveLength(2);
+
+  expect(alertCards[0]).toHaveTextContent("Port Scan");
+  expect(alertCards[0]).toHaveTextContent("HIGH");
+  expect(alertCards[0]).toHaveTextContent("Source IP: Unavailable");
+  expect(alertCards[0]).toHaveTextContent("Port: Unavailable");
+  expect(alertCards[0]).toHaveTextContent("AI Confidence: Unavailable");
+
+  expect(alertCards[1]).toHaveTextContent("Suspicious Traffic");
+  expect(alertCards[1]).toHaveTextContent("MEDIUM");
+  expect(alertCards[1]).toHaveTextContent("Source IP: 10.0.0.20");
+  expect(alertCards[1]).toHaveTextContent("Port: Unavailable");
+  expect(alertCards[1]).toHaveTextContent("Detected: Unavailable");
+  expect(alertCards[1]).toHaveTextContent("AI Confidence: 81%");
+});
+
+it("does not display undefined or invalid confidence text for incomplete alerts", () => {
+  const incompleteAlerts = [
+    {
+      id: 303,
+      severity: "high" as const,
+      attackType: "Port Scan",
+    },
+    {
+      id: 304,
+      severity: "low" as const,
+      ip: "10.0.0.40",
+      port: 53,
+      attackType: "Unusual DNS Activity",
+      confidence: Number.NaN,
+    },
+  ];
+
+  render(<Alerts alerts={incompleteAlerts} />);
+
+  expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/NaN%/i)).not.toBeInTheDocument();
+
+  const alertCards = screen.getAllByRole("article");
+
+  expect(alertCards[0]).toHaveTextContent("Detected: Unavailable");
+  expect(alertCards[0]).toHaveTextContent("AI Confidence: Unavailable");
+
+  expect(alertCards[1]).toHaveTextContent("AI Confidence: Unavailable");
+});
