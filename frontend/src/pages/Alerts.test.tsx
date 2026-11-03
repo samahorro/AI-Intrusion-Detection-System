@@ -231,3 +231,71 @@ it("does not display undefined or invalid confidence text for incomplete alerts"
 
   expect(alertCards[1]).toHaveTextContent("AI Confidence: Unavailable");
 });
+
+// Sprint 4 - SOC 2 CC7.3 KAN-203
+it("maps security event data to the correct frontend alert fields", () => {
+  const sourceEvent = [
+    {
+      id: 401,
+      severity: "critical" as const,
+      ip: "172.16.10.25",
+      port: 3389,
+      attackType: "Brute Force",
+      timestamp: "2026-11-02 19:30",
+      confidence: 0.97,
+    },
+  ];
+
+  render(<Alerts alerts={sourceEvent} />);
+
+  const alertCard = screen.getByRole("article");
+
+  expect(alertCard).toHaveTextContent("CRITICAL");
+  expect(alertCard).toHaveTextContent("Brute Force");
+  expect(alertCard).toHaveTextContent(
+    "Source IP: 172.16.10.25",
+  );
+  expect(alertCard).toHaveTextContent("Port: 3389");
+  expect(alertCard).toHaveTextContent(
+    "Detected: 2026-11-02 19:30",
+  );
+  expect(alertCard).toHaveTextContent(
+    "AI Confidence: 97%",
+  );
+});
+
+it("does not swap security event fields during presentation", () => {
+  const sourceEvent = [
+    {
+      id: 402,
+      severity: "medium" as const,
+      ip: "10.20.30.40",
+      port: 8080,
+      attackType: "Suspicious Traffic",
+      timestamp: "2026-11-02 20:00",
+      confidence: 0.73,
+    },
+  ];
+
+  render(<Alerts alerts={sourceEvent} />);
+
+  const alertCard = screen.getByRole("article");
+
+  expect(alertCard).toHaveTextContent(
+    "Source IP: 10.20.30.40",
+  );
+  expect(alertCard).toHaveTextContent("Port: 8080");
+  expect(alertCard).toHaveTextContent(
+    "Detected: 2026-11-02 20:00",
+  );
+  expect(alertCard).toHaveTextContent(
+    "AI Confidence: 73%",
+  );
+
+  expect(alertCard).not.toHaveTextContent(
+    "Source IP: 8080",
+  );
+  expect(alertCard).not.toHaveTextContent(
+    "Port: 10.20.30.40",
+  );
+});
