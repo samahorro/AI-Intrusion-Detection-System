@@ -12,23 +12,26 @@ from .capture.routes import router as capture_router
 from .database import init_db
 from .detection.routes import router as detection_router
 
+# KAN-230: Protected IP management
+from .ip_management.firewall import SimulatedFirewall
+from .ip_management.routes import router as ip_management_router
+
 
 def create_app(initialize_database: bool = True):
-    """
-    Create the AEGIS FastAPI application.
-
-    Includes:
-    - Authentication and session management
-    - CORS configuration for the React frontend
-    - Live TShark network capture endpoints
-    - Experimental AI intrusion detection endpoints
-    - Request validation and database initialization
-    """
+    """Create and configure the AEGIS FastAPI application."""
 
     app = FastAPI(
         title="AI Intrusion Detection System API",
         version="0.3.0",
     )
+
+    # ==================================================
+    # KAN-230: SAFE SIMULATED FIREWALL
+    # ==================================================
+
+    # Store the simulated firewall on the application.
+    # No real operating-system firewall rules are changed.
+    app.state.ip_firewall = SimulatedFirewall()
 
     # ==================================================
     # FRONTEND CORS CONFIGURATION
@@ -39,15 +42,16 @@ def create_app(initialize_database: bool = True):
         "http://localhost:5173",
     )
 
-    # Support both common Vite development ports.
-    # FRONTEND_ORIGIN allows an additional configured origin.
-    allowed_origins = list({
-        frontend_origin,
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    })
+    # Support common Vite development ports.
+    allowed_origins = list(
+        {
+            frontend_origin,
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+        }
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -61,6 +65,9 @@ def create_app(initialize_database: bool = True):
     # SESSION AUTHENTICATION
     # ==================================================
 
+    # Existing development configuration is preserved.
+    # Production security improvements are tracked
+    # separately under SOC 2 Validation 7.
     app.add_middleware(
         SessionMiddleware,
         secret_key=os.getenv(
@@ -80,6 +87,8 @@ def create_app(initialize_database: bool = True):
         request,
         exc: RequestValidationError,
     ):
+        """Return validation errors without exposing input."""
+
         safe_errors = []
 
         for error in exc.errors():
@@ -102,15 +111,30 @@ def create_app(initialize_database: bool = True):
     # REGISTER BACKEND API ROUTERS
     # ==================================================
 
-    # User authentication and session endpoints
+    # Authentication:
+    # /auth/register
+    # /auth/login
+    # /auth/me
+    # /auth/logout
     app.include_router(auth_router)
 
     # Intrusion detection endpoints
     app.include_router(detection_router)
 
-    # TShark network capture, flow aggregation,
-    # and experimental Random Forest predictions
+    # Network capture and flow aggregation endpoints
     app.include_router(capture_router)
+
+    # ==================================================
+    # KAN-230: PROTECTED IP MANAGEMENT ENDPOINTS
+    # ==================================================
+
+    # GET    /blocked-ips
+    # POST   /blocked-ips
+    # DELETE /blocked-ips/{ip_address}
+    #
+    # Authentication and record ownership checks are
+    # enforced by the IP management router.
+    app.include_router(ip_management_router)
 
     # ==================================================
     # HEALTH CHECK ENDPOINT
@@ -118,6 +142,8 @@ def create_app(initialize_database: bool = True):
 
     @app.get("/health")
     def health():
+        """Return the backend health status."""
+
         return {
             "status": "ok",
         }
@@ -132,4 +158,5 @@ def create_app(initialize_database: bool = True):
     return app
 
 
+# Application instance used by Uvicorn and tests.
 app = create_app()
