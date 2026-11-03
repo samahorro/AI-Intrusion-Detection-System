@@ -30,6 +30,11 @@ def create_app(initialize_database: bool = True):
         version="0.3.0",
     )
 
+    production = os.getenv("APP_ENV", "development").lower() == "production"
+    secret_key = os.getenv("SECRET_KEY", "")
+    if production and (len(secret_key) < 32 or secret_key == "development-only-change-me"):
+        raise RuntimeError("Production requires a unique SECRET_KEY of at least 32 characters")
+
     # ==================================================
     # FRONTEND CORS CONFIGURATION
     # ==================================================
@@ -41,7 +46,10 @@ def create_app(initialize_database: bool = True):
 
     # Support both common Vite development ports.
     # FRONTEND_ORIGIN allows an additional configured origin.
-    allowed_origins = list({
+    if production and not frontend_origin.startswith("https://"):
+        raise RuntimeError("Production FRONTEND_ORIGIN must use HTTPS")
+
+    allowed_origins = [frontend_origin] if production else list({
         frontend_origin,
         "http://localhost:5173",
         "http://localhost:5174",
@@ -63,13 +71,21 @@ def create_app(initialize_database: bool = True):
 
     app.add_middleware(
         SessionMiddleware,
-        secret_key=os.getenv(
-            "SECRET_KEY",
-            "development-only-change-me",
-        ),
+        secret_key=secret_key or "development-only-change-me",
         same_site="lax",
-        https_only=False,
+        https_only=production,
     )
+
+    @app.middleware("http")
+    async def security_headers(request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Cache-Control"] = "no-store"
+        if production:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        return response
 
     # ==================================================
     # REQUEST VALIDATION ERROR HANDLING
