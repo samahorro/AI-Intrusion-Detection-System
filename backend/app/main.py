@@ -106,6 +106,7 @@ def create_app(initialize_database: bool = True):
         ),
         same_site="lax",
         https_only=production,
+        max_age=3600,
     )
 
     # ==================================================
