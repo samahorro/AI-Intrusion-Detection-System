@@ -299,3 +299,132 @@ it("does not swap security event fields during presentation", () => {
     "Port: 10.20.30.40",
   );
 });
+
+// Sprint 4 - SOC 2 CC7.3 KAN-204
+it("presents all supported severity levels correctly", () => {
+  const testAlerts = [
+    {
+      id: 501,
+      severity: "low" as const,
+      ip: "10.0.0.1",
+      port: 53,
+      attackType: "Low Severity Event",
+      timestamp: "2026-11-02 20:10",
+      confidence: 0.25,
+    },
+    {
+      id: 502,
+      severity: "medium" as const,
+      ip: "10.0.0.2",
+      port: 443,
+      attackType: "Medium Severity Event",
+      timestamp: "2026-11-02 20:11",
+      confidence: 0.5,
+    },
+    {
+      id: 503,
+      severity: "high" as const,
+      ip: "10.0.0.3",
+      port: 22,
+      attackType: "High Severity Event",
+      timestamp: "2026-11-02 20:12",
+      confidence: 0.75,
+    },
+    {
+      id: 504,
+      severity: "critical" as const,
+      ip: "10.0.0.4",
+      port: 3389,
+      attackType: "Critical Severity Event",
+      timestamp: "2026-11-02 20:13",
+      confidence: 0.99,
+    },
+  ];
+
+  render(<Alerts alerts={testAlerts} />);
+
+  const alertCards = screen.getAllByRole("article");
+
+  expect(alertCards[0]).toHaveTextContent("LOW");
+  expect(alertCards[1]).toHaveTextContent("MEDIUM");
+  expect(alertCards[2]).toHaveTextContent("HIGH");
+  expect(alertCards[3]).toHaveTextContent("CRITICAL");
+});
+
+it("formats confidence values as understandable percentages", () => {
+  const testAlerts = [
+    {
+      id: 505,
+      severity: "low" as const,
+      ip: "10.0.0.5",
+      port: 80,
+      attackType: "Zero Confidence Event",
+      timestamp: "2026-11-02 20:20",
+      confidence: 0,
+    },
+    {
+      id: 506,
+      severity: "high" as const,
+      ip: "10.0.0.6",
+      port: 22,
+      attackType: "High Confidence Event",
+      timestamp: "2026-11-02 20:21",
+      confidence: 0.94,
+    },
+    {
+      id: 507,
+      severity: "critical" as const,
+      ip: "10.0.0.7",
+      port: 3389,
+      attackType: "Maximum Confidence Event",
+      timestamp: "2026-11-02 20:22",
+      confidence: 1,
+    },
+  ];
+
+  render(<Alerts alerts={testAlerts} />);
+
+  const alertCards = screen.getAllByRole("article");
+
+  expect(alertCards[0]).toHaveTextContent("AI Confidence: 0%");
+  expect(alertCards[1]).toHaveTextContent("AI Confidence: 94%");
+  expect(alertCards[2]).toHaveTextContent("AI Confidence: 100%");
+});
+
+it("does not present invalid confidence values as legitimate percentages", () => {
+  const testAlerts = [
+    {
+      id: 508,
+      severity: "medium" as const,
+      ip: "10.0.0.8",
+      port: 443,
+      attackType: "Invalid Confidence Event",
+      timestamp: "2026-11-02 20:30",
+      confidence: -0.5,
+    },
+    {
+      id: 509,
+      severity: "high" as const,
+      ip: "10.0.0.9",
+      port: 22,
+      attackType: "Out of Range Confidence Event",
+      timestamp: "2026-11-02 20:31",
+      confidence: 1.5,
+    },
+  ];
+
+  render(<Alerts alerts={testAlerts} />);
+
+  const alertCards = screen.getAllByRole("article");
+
+  expect(alertCards[0]).toHaveTextContent(
+    "AI Confidence: Unavailable",
+  );
+
+  expect(alertCards[1]).toHaveTextContent(
+    "AI Confidence: Unavailable",
+  );
+
+  expect(screen.queryByText("-50%")).not.toBeInTheDocument();
+  expect(screen.queryByText("150%")).not.toBeInTheDocument();
+});
