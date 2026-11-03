@@ -2,6 +2,7 @@ import type {
   PropsWithChildren,
   ReactNode,
 } from "react";
+import { Link } from "react-router-dom";
 
 import {
   getPrimaryNavigationRoutes,
@@ -14,27 +15,30 @@ export type AppShellProps = PropsWithChildren<{
   currentPath: string;
   userLabel?: string;
   headerActions?: ReactNode;
+  contentTag?: "main" | "div";
 }>;
 
 export function AppShell({
   currentPath,
   userLabel,
   headerActions,
+  contentTag = "main",
   children,
 }: AppShellProps) {
   const navigation =
     getPrimaryNavigationRoutes();
+  const Content = contentTag;
 
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
         <div className={styles.headerMain}>
-          <a
+          <Link
             className={styles.brand}
-            href="/dashboard"
+            to="/console"
           >
             AI-IDS
-          </a>
+          </Link>
 
           <nav
             className={styles.navigation}
@@ -47,9 +51,9 @@ export function AppShell({
               );
 
               return (
-                <a
+                <Link
                   key={route.id}
-                  href={route.path}
+                  to={route.path}
                   className={
                     active
                       ? `${styles.navLink} ${styles.navLinkActive}`
@@ -61,7 +65,7 @@ export function AppShell({
                   data-route-owner={route.owner}
                 >
                   {route.label}
-                </a>
+                </Link>
               );
             })}
           </nav>
@@ -80,9 +84,9 @@ export function AppShell({
         ) : null}
       </header>
 
-      <main className={styles.content}>
+      <Content className={styles.content}>
         {children}
-      </main>
+      </Content>
     </div>
   );
 }

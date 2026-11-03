@@ -36,6 +36,7 @@ function mapBackendUser(
     displayName: user.username,
     role: "user",
     permissions: [],
+    ...(user.created_at ? { createdAt: user.created_at } : {}),
   };
 }
 

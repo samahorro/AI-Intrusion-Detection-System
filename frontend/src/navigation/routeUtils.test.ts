@@ -49,6 +49,9 @@ describe("route registry and navigation helpers", () => {
     expect(routes.every((route) => route.showInPrimaryNavigation)).toBe(true);
     expect(routes.some((route) => route.path === "/login")).toBe(false);
     expect(routes.some((route) => route.path === "/dashboard")).toBe(true);
+    expect(routes.some((route) => route.path === "/console")).toBe(true);
+    expect(routes.some((route) => route.path === "/account")).toBe(true);
+    expect(routes.some((route) => route.path === "/admin/users")).toBe(false);
   });
 
   it("selects only protected routes and excludes login", () => {
