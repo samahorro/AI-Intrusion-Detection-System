@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { safeReturnPath } from "../../navigation/safeReturnPath";
 
 import { Card } from "../../components/base";
 import { AuthServiceError } from "../../services/auth/AuthServiceError";
@@ -216,14 +217,17 @@ function AegisBackdrop() {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { state, login } = useAuth();
+  const location = useLocation();
+  const { state, login, refreshSession } = useAuth();
+  const locationState = location.state as { from?: unknown; reason?: unknown } | null;
+  const returnPath = safeReturnPath(locationState?.from);
 
   const [errorMessage, setErrorMessage] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect authenticated users
   if (state.status === "authenticated") {
-    return <Navigate to="/console" replace />;
+    return <Navigate to={returnPath} replace />;
   }
 
   const isCheckingSession =
@@ -278,6 +282,21 @@ export function LoginPage() {
             title="Welcome back"
             description="Sign in to your AEGIS account to continue."
           >
+            {(state.status === "unavailable") && (
+              <div className="auth-login-form__error" role="alert">
+                Unable to verify your previous session because the authentication
+                service is unreachable. You can retry the check or sign in again.
+                <button type="button" onClick={() => { void refreshSession(); }}>
+                  Retry session check
+                </button>
+              </div>
+            )}
+            {(state.status === "anonymous" &&
+              (state.reason === "expired" || locationState?.reason === "expired")) && (
+              <p role="status" className="auth-session-status">
+                Your session expired. Sign in again to continue.
+              </p>
+            )}
             <LoginForm
               isSubmitting={isSubmitting}
               errorMessage={errorMessage}
@@ -291,7 +310,7 @@ export function LoginPage() {
                 try {
                   await login(credentials);
 
-                  navigate("/console", {
+                  navigate(returnPath, {
                     replace: true,
                   });
                 } catch (error) {

@@ -195,3 +195,19 @@
   .aegis-globe__endpoint,
   .aegis-globe__orbit { animation: none !important; }
 }
+
+/* Retry session verification on transient authentication outages. */
+.auth-page .auth-login-form__error button {
+  display: block;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: rgba(120, 70, 185, 0.35);
+  color: #fff;
+  border: 1px solid rgba(212, 160, 255, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.auth-page .auth-login-form__error button:focus-visible {
+  outline: 2px solid #d9bbff;
+  outline-offset: 2px;
+}

@@ -2,6 +2,7 @@ import {
   ApiClientError,
   type ApiTransport,
 } from "./apiClient";
+import { reportSessionExpiry } from "./auth/sessionExpiryEvents";
 
 import type {
   ApiErrorPayload,
@@ -51,6 +52,12 @@ export class FetchTransport implements ApiTransport {
             : JSON.stringify(request.body),
       },
     );
+
+    // Report the authoritative status before attempting to parse the body;
+    // some error responses carry an invalid or non-JSON payload.
+    if (response.status === 401 && !request.path.startsWith("/auth/")) {
+      reportSessionExpiry();
+    }
 
     const contentType =
       response.headers.get("content-type") ?? "";

@@ -20,7 +20,8 @@ export type AuthSession = {
 };
 
 export type AuthState =
-  | { status: "anonymous" }
+  | { status: "anonymous"; reason?: "expired" }
+  | { status: "unavailable" }
   | { status: "loading" }
   | {
       status: "authenticated";

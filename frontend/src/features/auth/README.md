@@ -33,13 +33,18 @@ Mock sessions are stored in `sessionStorage` and are used only when mock mode is
 
 Supported states are:
 
-- loading
-- anonymous
+- loading (session check in progress)
+- anonymous (including an explicit expired-session reason)
+- unavailable (the authentication service could not be reached or failed)
 - authenticated
 
-On startup, the provider checks `/auth/me`. A valid backend session restores the authenticated user. A `401 Unauthorized` response is treated as an anonymous session.
+On startup, the provider checks `/auth/me`. A valid backend cookie session restores the authenticated user. A `401 Unauthorized` from `/auth/me` indicates there is no valid session. A transport error or server outage instead displays a retryable session-check error without claiming the user was logged out.
 
-Logout calls the backend logout endpoint and returns the frontend to the anonymous state.
+For authenticated users, a `401` response from a protected API endpoint expires the local authenticated view. Both `captureService` and `FetchTransport` report those responses to the provider; login failures and initial `/auth/me` probes are excluded. Stale session-check responses cannot re-authenticate an expired session. Retrying session verification does not require storing a browser access token.
+
+Protected pages retain their permitted route destination when redirecting to `/login`, so a successful sign-in can return to that route. Unrecognized or external redirect targets are discarded.
+
+Logout requires a successful backend confirmation before the interface claims sign-out succeeded. If the network request fails, the user retains a retryable sign-out action instead of seeing a misleading success state.
 
 ## Protected routes
 

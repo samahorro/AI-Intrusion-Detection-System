@@ -1,4 +1,6 @@
 
+import { reportSessionExpiry } from "./auth/sessionExpiryEvents";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 // ============================================================
@@ -96,6 +98,14 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      reportSessionExpiry();
+    }
+    // The experimental prediction API is not implemented in the current
+    // backend. Do not invent AI results or silently replace them with mocks.
+    if (response.status === 404 && path === "/capture/experimental-predictions") {
+      throw new Error("Experimental AI predictions are unavailable on this backend (HTTP 404). The backend/ML integration is still pending.");
+    }
     const error = await response.json().catch(() => null);
 
     throw new Error(

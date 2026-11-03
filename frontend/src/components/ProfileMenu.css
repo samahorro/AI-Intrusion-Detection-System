@@ -268,3 +268,15 @@
   outline: 2px solid #c595ff;
   outline-offset: 2px;
 }
+
+/* Display backend logout failures instead of falsely claiming success. */
+.aegis-profile__signout-error {
+  padding: 10px 12px;
+  margin: 6px 0 0;
+  color: #ffd9e4;
+  font-size: 12px;
+  line-height: 1.45;
+  background: rgba(140, 30, 60, 0.22);
+  border: 1px solid rgba(255, 130, 160, 0.4);
+  border-radius: 8px;
+}

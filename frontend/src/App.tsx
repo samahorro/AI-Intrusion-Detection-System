@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import { useState, type PropsWithChildren, type ReactNode } from "react";
 import {
   BrowserRouter,
   Link,
@@ -38,6 +38,8 @@ function ProtectedPage({ children }: PropsWithChildren) {
 function AuthenticatedLayout({ children }: PropsWithChildren) {
   const { state, logout } = useAuth();
   const { pathname } = useLocation();
+  const [signOutError, setSignOutError] = useState("");
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Keep Kevin's Security Console and the login portal standalone.
   if (
@@ -54,13 +56,25 @@ function AuthenticatedLayout({ children }: PropsWithChildren) {
       currentPath={pathname}
       userLabel={state.session.user.displayName}
       headerActions={(
-        <button
-          type="button"
-          className="nav-bar__logout"
-          onClick={() => { void logout(); }}
-        >
-          Sign out
-        </button>
+        <>
+          {signOutError && <span role="alert">{signOutError}</span>}
+          <button
+            type="button"
+            className="nav-bar__logout"
+            disabled={isSigningOut}
+            onClick={() => {
+              setSignOutError("");
+              setIsSigningOut(true);
+              void logout().catch(() => {
+                setSignOutError("Sign out failed. Please retry.");
+              }).finally(() => {
+                setIsSigningOut(false);
+              });
+            }}
+          >
+            {isSigningOut ? "Signing out..." : "Sign out"}
+          </button>
+        </>
       )}
     >
       {children}
