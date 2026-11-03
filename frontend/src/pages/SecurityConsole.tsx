@@ -9,6 +9,7 @@ import {
   type CaptureInterface,
   type CaptureStats,
   type ExperimentalPredictionsResponse,
+  type SecurityAlertsResponse,
 } from "../services/captureService";
 
 import "./SecurityConsole.css";
@@ -48,6 +49,11 @@ export default function SecurityConsole() {
     useState<ExperimentalPredictionsResponse | null>(null);
 
   const [aiError, setAiError] = useState("");
+
+  // KAN-253: Verified signature-rule detections, separate from AI.
+  const [securityAlerts, setSecurityAlerts] =
+    useState<SecurityAlertsResponse | null>(null);
+  const [alertError, setAlertError] = useState("");
 
   // ---------------------------------------------------------
   // Capture statistics polling
@@ -171,6 +177,48 @@ export default function SecurityConsole() {
   }, []);
 
   // ---------------------------------------------------------
+  // KAN-253: Poll real signature-based security alerts
+  // ---------------------------------------------------------
+
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+
+    async function refreshAlerts() {
+      if (pending) return;
+      pending = true;
+
+      try {
+        const result = await captureService.getSecurityAlerts();
+        if (active) {
+          setSecurityAlerts(result);
+          setAlertError("");
+        }
+      } catch (e) {
+        if (active) {
+          // Do not display cached alerts as though they are live.
+          setSecurityAlerts(null);
+          setAlertError(
+            e instanceof Error
+              ? e.message
+              : "Unable to retrieve security alerts",
+          );
+        }
+      } finally {
+        pending = false;
+      }
+    }
+
+    void refreshAlerts();
+    const timer = window.setInterval(() => void refreshAlerts(), 2000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  // ---------------------------------------------------------
   // Start / stop live capture
   // ---------------------------------------------------------
 
@@ -192,6 +240,7 @@ export default function SecurityConsole() {
 
         // Clear results from the previous capture session.
         setAiResults(null);
+        setSecurityAlerts(null);
       }
     } catch (e) {
       setError(
@@ -281,6 +330,15 @@ export default function SecurityConsole() {
     );
 
   // ---------------------------------------------------------
+  // Signature alert summary (independent of experimental AI)
+  // ---------------------------------------------------------
+
+  const liveAlerts = securityAlerts?.alerts ?? [];
+  const portScanCount = liveAlerts.filter(
+    (alert) => alert.attack_type === "port_scan",
+  ).length;
+
+  // ---------------------------------------------------------
   // Component
   // ---------------------------------------------------------
 
@@ -330,9 +388,9 @@ export default function SecurityConsole() {
           ◇ <span>AI detections (Experimental)</span>
         </button>
 
-        <div className="sentinel-nav-muted">
-          ▤ <span>Incident alerts <i>Coming soon</i></span>
-        </div>
+        <Link to="/alerts" className="sentinel-nav-link">
+          ▤ <span>Incident alerts</span>
+        </Link>
 
         <div className="sentinel-nav-foot">
           <Link to="/dashboard">← Original dashboard</Link>
@@ -416,6 +474,12 @@ export default function SecurityConsole() {
           {aiError && (
             <div className="sentinel-error" role="alert">
               AI detection error: {aiError}
+            </div>
+          )}
+
+          {alertError && (
+            <div className="sentinel-error" role="alert">
+              Signature alert error: {alertError}
             </div>
           )}
 
@@ -651,6 +715,97 @@ export default function SecurityConsole() {
               </div>
             </section>
           </div>
+
+          {/* KAN-253: Live signature-based security alerts */}
+          <section className="sentinel-panel" aria-labelledby="signature-alerts-title">
+            <div className="sentinel-panel-head">
+              <div>
+                <h2 id="signature-alerts-title">Signature-based security alerts</h2>
+                <p>Port-scan detections from captured traffic; independent of experimental AI</p>
+              </div>
+              <span className="sentinel-panel-tag">AUTO-REFRESH • 2S</span>
+            </div>
+
+            <div style={{ padding: "16px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: "12px",
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <small>SIGNATURE ALERTS</small>
+                  <h2>{alertError ? "Unavailable" : securityAlerts?.alert_count ?? "—"}</h2>
+                </div>
+                <div>
+                  <small>PORT SCAN DETECTIONS</small>
+                  <h2>{alertError ? "Unavailable" : securityAlerts ? portScanCount : "—"}</h2>
+                </div>
+                <div>
+                  <small>CAPTURE STATUS</small>
+                  <h2 style={{ fontSize: "1rem" }}>
+                    {alertError
+                      ? "Unavailable"
+                      : securityAlerts
+                        ? securityAlerts.capture_running ? "Running" : "Stopped"
+                        : "Loading"}
+                  </h2>
+                </div>
+              </div>
+
+              {!securityAlerts && !alertError && (
+                <p className="sentinel-empty">Loading security alerts...</p>
+              )}
+
+              {securityAlerts && liveAlerts.length === 0 && (
+                <p className="sentinel-empty">No signature-based security alerts recorded in this session.</p>
+              )}
+
+              {securityAlerts && liveAlerts.length > 0 && (
+                <div className="sentinel-table-wrap" style={{ overflowX: "auto" }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>TIME</th>
+                        <th>DETECTION</th>
+                        <th>SEVERITY</th>
+                        <th>SOURCE IP</th>
+                        <th>DESTINATION IP</th>
+                        <th>PORTS</th>
+                        <th>RULE ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {liveAlerts.slice(0, 5).map((alert, index) => (
+                        <tr key={`${alert.rule_id}-${alert.timestamp}-${index}`}>
+                          <td>{timeLabel(alert.timestamp)}</td>
+                          <td>{alert.attack_type === "port_scan" ? "Port scan" : alert.attack_type}</td>
+                          <td>
+                            <strong style={{ color: alert.severity.toLowerCase() === "high" ? "#ef4444" : "#f59e0b" }}>
+                              {alert.severity.toUpperCase()}
+                            </strong>
+                          </td>
+                          <td className="sentinel-mono">{alert.source_ip}</td>
+                          <td className="sentinel-mono">{alert.destination_ip}</td>
+                          <td>{alert.ports_scanned}</td>
+                          <td className="sentinel-mono">{alert.rule_id}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <p style={{ marginTop: 12, fontSize: 12 }}>
+                Alerts are stored in memory only; detections are not confirmed incidents.
+              </p>
+              <Link to="/alerts" className="sentinel-nav-link">
+                View all incident alerts →
+              </Link>
+            </div>
+          </section>
 
           {/* Activity / AI Detection Tables */}
           <section className="sentinel-panel sentinel-activity">
