@@ -1,5 +1,10 @@
 
-"""KAN-230: Protected IP management API tests."""
+"""KAN-230: Protected IP management API tests.
+
+Sprint 5:
+Verify the complete authenticated simulated IP management
+workflow used by the AEGIS Security Console.
+"""
 
 import secrets
 
@@ -212,3 +217,79 @@ def test_user_cannot_unblock_another_users_ip():
         ]
 
         assert address in owner_addresses
+
+
+# ==========================================================
+# SPRINT 5 - COMPLETE IP MANAGEMENT WORKFLOW TEST
+# ==========================================================
+
+def test_complete_simulated_ip_management_workflow():
+    """Verify the complete block, retrieve, and unblock workflow.
+
+    This test supports the Sprint 5 Observed Hosts
+    integration by verifying the backend operations
+    expected by the AEGIS frontend.
+    """
+
+    with create_authenticated_client() as client:
+        reason = "Sprint 5 integration demonstration"
+
+        # Step 1: Create a simulated IP block.
+        address, created = create_unique_block(
+            client,
+            reason=reason,
+        )
+
+        assert created.status_code == 201
+        assert created.json()["success"] is True
+
+        # Step 2: Retrieve the saved IP record.
+        listing = client.get("/blocked-ips")
+
+        assert listing.status_code == 200
+        assert listing.json()["simulation_only"] is True
+
+        records = [
+            item
+            for item in listing.json()["items"]
+            if item["ip_address"] == address
+        ]
+
+        assert len(records) == 1
+
+        record = records[0]
+
+        assert record["status"] == "blocked"
+        assert record["reason"] == reason
+        assert record["created_by_user_id"] is not None
+
+        # Step 3: Unblock the same IP address.
+        unblocked = client.delete(
+            f"/blocked-ips/{address}"
+        )
+
+        assert unblocked.status_code == 200
+
+        # Step 4: Verify the updated saved record.
+        updated_listing = client.get("/blocked-ips")
+
+        assert updated_listing.status_code == 200
+        assert updated_listing.json()["simulation_only"] is True
+
+        updated_records = [
+            item
+            for item in updated_listing.json()["items"]
+            if item["ip_address"] == address
+        ]
+
+        # Preserve the record for review.
+        assert len(updated_records) == 1
+
+        updated_record = updated_records[0]
+
+        assert updated_record["status"] == "unblocked"
+        assert updated_record["reason"] == reason
+        assert (
+            updated_record["created_by_user_id"]
+            == record["created_by_user_id"]
+        )
