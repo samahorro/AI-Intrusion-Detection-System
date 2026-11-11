@@ -103,6 +103,8 @@ class CaptureService:
             "-e",
             "tcp.flags.syn",
             "-e",
+            "tcp.flags.ack",
+            "-e",
             "tcp.flags.fin",
             "-e",
             "tcp.flags.reset",
@@ -171,7 +173,7 @@ class CaptureService:
             for line in process.stdout:
                 parts = line.rstrip("\r\n").split("|")
 
-                if len(parts) != 13:
+                if len(parts) != 14:
                     continue
 
                 (
@@ -186,6 +188,7 @@ class CaptureService:
                     udp_source,
                     udp_dest,
                     tcp_syn,
+                    tcp_ack,
                     tcp_fin,
                     tcp_rst,
                 ) = parts
@@ -226,6 +229,7 @@ class CaptureService:
                         tcp_dest or udp_dest or None
                     ),
                     "tcp_syn": tcp_syn == "1",
+                    "tcp_ack": tcp_ack == "1",
                     "tcp_fin": tcp_fin == "1",
                     "tcp_rst": tcp_rst == "1",
                 }

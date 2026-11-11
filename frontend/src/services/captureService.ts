@@ -30,6 +30,10 @@ export type LivePacket = {
   length: number;
   source_port: string | null;
   destination_port: string | null;
+  tcp_syn?: boolean;
+  tcp_ack?: boolean;
+  tcp_fin?: boolean;
+  tcp_rst?: boolean;
 };
 
 export type SourceIPStats = {
@@ -85,6 +89,31 @@ export type ExperimentalPredictionsResponse = {
 };
 
 // ============================================================
+// KAN-253: Signature-Based Security Alert Types
+// ============================================================
+
+export type SignatureSecurityAlert = {
+  detected: boolean;
+  rule_id: string;
+  attack_type: string;
+  severity: string;
+  source_ip: string;
+  destination_ip: string;
+  ports_scanned: number;
+  timestamp: string;
+  reason?: string;
+  event_type: "signature_detection";
+  status: string;
+};
+
+export type SecurityAlertsResponse = {
+  status: "ok";
+  capture_running: boolean;
+  alert_count: number;
+  alerts: SignatureSecurityAlert[];
+};
+
+// ============================================================
 // API Request Helper
 // ============================================================
 
@@ -123,29 +152,52 @@ async function apiRequest<T>(
 // ============================================================
 
 export const captureService = {
-
-  // Retrieve available network interfaces
+  // Retrieve available network interfaces.
   async getInterfaces() {
     return apiRequest<{ interfaces: CaptureInterface[] }>(
       "/capture/interfaces",
     );
   },
 
-  // Get current packet capture status
+  // Get current packet capture status.
   async getStatus() {
     return apiRequest<CaptureStatus>(
       "/capture/status",
     );
   },
 
-  // Get live packet capture statistics
+  // Get live packet capture statistics.
   async getStats() {
     return apiRequest<CaptureStats>(
       "/capture/stats",
     );
   },
 
-  // Start packet capture on a selected interface
+  // ==========================================================
+  // KAN-253: Retrieve Signature-Based Security Alerts
+  // ==========================================================
+
+  /**
+   * Retrieve automated signature-based intrusion alerts.
+   *
+   * Backend endpoint:
+   * GET /capture/alerts
+   *
+   * The request uses the existing authenticated session.
+   * Results are from PortScanTracker and FlowBridge.
+   * They are not experimental AI predictions.
+   */
+  async getSecurityAlerts() {
+    return apiRequest<SecurityAlertsResponse>(
+      "/capture/alerts",
+    );
+  },
+
+  // ==========================================================
+  // Network Capture Controls
+  // ==========================================================
+
+  // Start packet capture on a selected interface.
   async start(interfaceName: string) {
     return apiRequest("/capture/start", {
       method: "POST",
@@ -158,7 +210,7 @@ export const captureService = {
     });
   },
 
-  // Stop packet capture
+  // Stop packet capture.
   async stop() {
     return apiRequest("/capture/stop", {
       method: "POST",
