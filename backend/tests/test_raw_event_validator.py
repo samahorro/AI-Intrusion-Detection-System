@@ -61,6 +61,17 @@ def test_invalid_session_id_rejected():
         validate_raw_event(event)
 
 
+def test_empty_timestamp_rejected():
+    event = valid_event()
+    event["timestamp"] = ""
+
+    with pytest.raises(
+        ValueError,
+        match="timestamp must be a non-empty string",
+    ):
+        validate_raw_event(event)
+
+
 def test_invalid_timestamp_rejected():
     event = valid_event()
     event["timestamp"] = "not-a-timestamp"
@@ -72,6 +83,17 @@ def test_invalid_timestamp_rejected():
         validate_raw_event(event)
 
 
+def test_timestamp_without_timezone_rejected():
+    event = valid_event()
+    event["timestamp"] = "2026-10-06T20:30:00"
+
+    with pytest.raises(
+        ValueError,
+        match="timestamp must include timezone information",
+    ):
+        validate_raw_event(event)
+
+
 def test_invalid_source_ip_rejected():
     event = valid_event()
     event["src_ip"] = "999.999.999.999"
@@ -79,6 +101,17 @@ def test_invalid_source_ip_rejected():
     with pytest.raises(
         ValueError,
         match="src_ip",
+    ):
+        validate_raw_event(event)
+
+
+def test_non_string_source_ip_rejected():
+    event = valid_event()
+    event["src_ip"] = 12345
+
+    with pytest.raises(
+        TypeError,
+        match="src_ip must be a string",
     ):
         validate_raw_event(event)
 
@@ -124,6 +157,29 @@ def test_invalid_ports_rejected(
     with pytest.raises(
         ValueError,
         match=field_name,
+    ):
+        validate_raw_event(event)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("src_port", True),
+        ("src_port", "443"),
+        ("dest_port", False),
+        ("dest_port", "80"),
+    ],
+)
+def test_non_integer_ports_rejected(
+    field_name,
+    value,
+):
+    event = valid_event()
+    event[field_name] = value
+
+    with pytest.raises(
+        TypeError,
+        match=f"{field_name} must be an integer or None",
     ):
         validate_raw_event(event)
 
