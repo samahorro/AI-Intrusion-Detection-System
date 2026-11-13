@@ -3,6 +3,65 @@ from unittest.mock import MagicMock
 from backend.app.capture import routes as capture_routes
 
 
+def test_capture_interfaces_success(
+    authenticated_client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        capture_routes,
+        "list_capture_interfaces",
+        lambda: [
+            {
+                "number": 1,
+                "name": "Wi-Fi",
+                "description": "Wireless Adapter",
+            }
+        ],
+    )
+
+    response = authenticated_client.get(
+        "/capture/interfaces"
+    )
+
+    assert response.status_code == 200
+
+    assert response.json() == {
+        "interfaces": [
+            {
+                "number": 1,
+                "name": "Wi-Fi",
+                "description": "Wireless Adapter",
+            }
+        ]
+    }
+
+
+def test_capture_interfaces_service_failure(
+    authenticated_client,
+    monkeypatch,
+):
+    def raise_failure():
+        raise RuntimeError(
+            "Unable to list capture interfaces."
+        )
+
+    monkeypatch.setattr(
+        capture_routes,
+        "list_capture_interfaces",
+        raise_failure,
+    )
+
+    response = authenticated_client.get(
+        "/capture/interfaces"
+    )
+
+    assert response.status_code == 503
+
+    assert response.json()["detail"] == (
+        "Unable to list capture interfaces."
+    )
+
+
 def test_capture_status_stopped(
     authenticated_client,
     monkeypatch,
@@ -51,6 +110,62 @@ def test_capture_status_running(
         "running": True,
         "interface": "Wi-Fi",
     }
+
+
+def test_capture_stats(
+    authenticated_client,
+    monkeypatch,
+):
+    expected_stats = {
+        "packet_count": 5,
+        "total_bytes": 500,
+        "protocols": {
+            "TCP": 3,
+            "UDP": 2,
+        },
+        "observed_source_ips": 2,
+        "recent_packets": [],
+        "last_error": None,
+    }
+
+    monkeypatch.setattr(
+        capture_routes.capture_service,
+        "get_stats",
+        lambda: expected_stats,
+    )
+
+    response = authenticated_client.get(
+        "/capture/stats"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == expected_stats
+
+
+def test_capture_flows(
+    authenticated_client,
+    monkeypatch,
+):
+    expected_flows = [
+        {
+            "source_ip": "192.0.2.10",
+            "destination_ip": "198.51.100.20",
+            "protocol": "TCP",
+        }
+    ]
+
+    monkeypatch.setattr(
+        capture_routes.capture_service.flow_bridge,
+        "snapshot",
+        lambda: expected_flows,
+    )
+
+    response = authenticated_client.get(
+        "/capture/flows"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == expected_flows
 
 
 def test_start_capture_success(
