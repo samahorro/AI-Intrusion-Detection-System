@@ -1,6 +1,9 @@
-
-
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import { ProfileMenu } from "../components/ProfileMenu";
 
@@ -15,6 +18,29 @@ import "./SecurityConsole.css";
 import "../AEGISTheme.css";
 
 type ConsoleTab = "traffic" | "hosts" | "ai";
+
+type BlockedIpRecord = {
+  id: number;
+  ip_address: string;
+  block_type: string;
+  reason: string | null;
+  status: string;
+  created_by_user_id: number | null;
+  created_at: string | null;
+  expires_at: string | null;
+};
+
+type BlockedIpListResponse = {
+  items: BlockedIpRecord[];
+  total: number;
+  simulation_only: boolean;
+};
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 const bytesLabel = (value: number) =>
   value < 1024
@@ -35,7 +61,9 @@ export default function SecurityConsole() {
   const [interfaces, setInterfaces] =
     useState<CaptureInterface[]>([]);
 
-  const [selectedInterface, setSelectedInterface] = useState("");
+  const [selectedInterface, setSelectedInterface] =
+    useState("");
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [refreshAt, setRefreshAt] = useState("");
@@ -43,9 +71,38 @@ export default function SecurityConsole() {
 
   const [tab, setTab] = useState<ConsoleTab>("traffic");
 
-  // Experimental AI detection state.
+  const activitySectionRef =
+    useRef<HTMLElement | null>(null);
+
+  // ---------------------------------------------------------
+  // Simulated IP management state
+  // ---------------------------------------------------------
+
+  const [blockedIps, setBlockedIps] =
+    useState<BlockedIpRecord[]>([]);
+
+  const [selectedBlockIp, setSelectedBlockIp] =
+    useState<string | null>(null);
+
+  const [blockReason, setBlockReason] = useState("");
+
+  const [ipActionBusy, setIpActionBusy] =
+    useState(false);
+
+  const [ipActionError, setIpActionError] =
+    useState("");
+
+  const [ipActionSuccess, setIpActionSuccess] =
+    useState("");
+
+  // ---------------------------------------------------------
+  // Experimental AI detection state
+  // ---------------------------------------------------------
+
   const [aiResults, setAiResults] =
-    useState<ExperimentalPredictionsResponse | null>(null);
+    useState<ExperimentalPredictionsResponse | null>(
+      null,
+    );
 
   const [aiError, setAiError] = useState("");
 
@@ -59,6 +116,7 @@ export default function SecurityConsole() {
 
     async function refresh() {
       if (pending) return;
+
       pending = true;
 
       try {
@@ -84,7 +142,8 @@ export default function SecurityConsole() {
 
     async function initialize() {
       try {
-        const result = await captureService.getInterfaces();
+        const result =
+          await captureService.getInterfaces();
 
         if (!active) return;
 
@@ -97,7 +156,9 @@ export default function SecurityConsole() {
         );
 
         setSelectedInterface(
-          wifi?.name ?? result.interfaces[0]?.name ?? "",
+          wifi?.name ??
+            result.interfaces[0]?.name ??
+            "",
         );
       } catch (e) {
         if (active) {
@@ -134,6 +195,7 @@ export default function SecurityConsole() {
 
     async function refreshAI() {
       if (pending) return;
+
       pending = true;
 
       try {
@@ -171,6 +233,181 @@ export default function SecurityConsole() {
   }, []);
 
   // ---------------------------------------------------------
+  // Simulated IP management
+  // ---------------------------------------------------------
+
+  async function loadBlockedIps() {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/blocked-ips`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Unable to load blocked IPs (${response.status})`,
+        );
+      }
+
+      const data =
+        (await response.json()) as BlockedIpListResponse;
+
+      setBlockedIps(data.items);
+      setIpActionError("");
+    } catch (e) {
+      setIpActionError(
+        e instanceof Error
+          ? e.message
+          : "Unable to load blocked IP addresses",
+      );
+    }
+  }
+
+  useEffect(() => {
+    void loadBlockedIps();
+  }, []);
+
+  function isIpBlocked(ip: string) {
+    return blockedIps.some(
+      (record) =>
+        record.ip_address === ip &&
+        record.status.toLowerCase() !== "unblocked",
+    );
+  }
+
+  function openObservedHosts() {
+    setTab("hosts");
+
+    window.setTimeout(() => {
+      activitySectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  async function handleConfirmBlock() {
+    if (!selectedBlockIp || ipActionBusy) {
+      return;
+    }
+
+    setIpActionBusy(true);
+    setIpActionError("");
+    setIpActionSuccess("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/blocked-ips`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ip_address: selectedBlockIp,
+            reason: blockReason.trim() || null,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        let detail = "";
+
+        try {
+          const body = await response.json();
+
+          detail =
+            typeof body?.detail === "string"
+              ? `: ${body.detail}`
+              : "";
+        } catch {
+          // Ignore an unreadable error body.
+        }
+
+        throw new Error(
+          `Unable to block IP (${response.status})${detail}`,
+        );
+      }
+
+      const blockedIp = selectedBlockIp;
+
+      setSelectedBlockIp(null);
+      setBlockReason("");
+
+      await loadBlockedIps();
+
+      setIpActionSuccess(
+        `${blockedIp} was added to the simulated blocked-IP list.`,
+      );
+    } catch (e) {
+      setIpActionError(
+        e instanceof Error
+          ? e.message
+          : "Unable to block IP",
+      );
+    } finally {
+      setIpActionBusy(false);
+    }
+  }
+
+  async function handleUnblockIp(ip: string) {
+    if (ipActionBusy) return;
+
+    setIpActionBusy(true);
+    setIpActionError("");
+    setIpActionSuccess("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/blocked-ips/${encodeURIComponent(
+          ip,
+        )}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        let detail = "";
+
+        try {
+          const body = await response.json();
+
+          detail =
+            typeof body?.detail === "string"
+              ? `: ${body.detail}`
+              : "";
+        } catch {
+          // Ignore an unreadable error body.
+        }
+
+        throw new Error(
+          `Unable to unblock IP (${response.status})${detail}`,
+        );
+      }
+
+      await loadBlockedIps();
+
+      setIpActionSuccess(
+        `${ip} was successfully unblocked.`,
+      );
+    } catch (e) {
+      setIpActionError(
+        e instanceof Error
+          ? e.message
+          : "Unable to unblock IP",
+      );
+    } finally {
+      setIpActionBusy(false);
+    }
+  }
+
+  // ---------------------------------------------------------
   // Start / stop live capture
   // ---------------------------------------------------------
 
@@ -185,7 +422,9 @@ export default function SecurityConsole() {
         await captureService.stop();
       } else {
         if (!selectedInterface) {
-          throw new Error("Select a network interface first");
+          throw new Error(
+            "Select a network interface first",
+          );
         }
 
         await captureService.start(selectedInterface);
@@ -236,7 +475,8 @@ export default function SecurityConsole() {
   );
 
   const observedHosts = (stats?.top_source_ips ?? []).filter(
-    (host) => host.ip.toLowerCase().includes(query),
+    (host) =>
+      host.ip.toLowerCase().includes(query),
   );
 
   // ---------------------------------------------------------
@@ -248,17 +488,20 @@ export default function SecurityConsole() {
   const analyzedFlows = predictions.length;
 
   const benignCount = predictions.filter(
-    (flow) => flow.ai_detection.prediction === "BENIGN",
+    (flow) =>
+      flow.ai_detection.prediction === "BENIGN",
   ).length;
 
   const attackCount = predictions.filter(
-    (flow) => flow.ai_detection.prediction === "ATTACK",
+    (flow) =>
+      flow.ai_detection.prediction === "ATTACK",
   ).length;
 
   const highestScore = predictions.length
     ? Math.max(
         ...predictions.map(
-          (flow) => flow.ai_detection.attack_probability,
+          (flow) =>
+            flow.ai_detection.attack_probability,
         ),
       )
     : null;
@@ -289,16 +532,25 @@ export default function SecurityConsole() {
       {/* Sidebar */}
       <aside className="sentinel-sidebar">
         <div className="sentinel-brand">
-          <span className="sentinel-brand-logo">◈</span>
+          <span className="sentinel-brand-logo">
+            ◈
+          </span>
 
           <span>
             AEGIS
-            <span className="sentinel-brand-accent"> / IDS</span>
-            <small>NETWORK DEFENSE CONSOLE</small>
+            <span className="sentinel-brand-accent">
+              {" "}
+              / IDS
+            </span>
+            <small>
+              NETWORK DEFENSE CONSOLE
+            </small>
           </span>
         </div>
 
-        <div className="sentinel-nav-label">WORKSPACE</div>
+        <div className="sentinel-nav-label">
+          WORKSPACE
+        </div>
 
         <div className="sentinel-nav-selected">
           ▦ <span>Security overview</span>
@@ -307,13 +559,23 @@ export default function SecurityConsole() {
         <button
           className="sentinel-nav-link"
           onClick={() => setTab("traffic")}
+          aria-current={
+            tab === "traffic"
+              ? "page"
+              : undefined
+          }
         >
           ≋ <span>Network traffic</span>
         </button>
 
         <button
           className="sentinel-nav-link"
-          onClick={() => setTab("hosts")}
+          onClick={openObservedHosts}
+          aria-current={
+            tab === "hosts"
+              ? "page"
+              : undefined
+          }
         >
           ▧ <span>Observed hosts</span>
         </button>
@@ -325,18 +587,33 @@ export default function SecurityConsole() {
         <button
           className="sentinel-nav-link"
           onClick={() => setTab("ai")}
-          aria-current={tab === "ai" ? "page" : undefined}
+          aria-current={
+            tab === "ai"
+              ? "page"
+              : undefined
+          }
         >
-          ◇ <span>AI detections (Experimental)</span>
+          ◇{" "}
+          <span>
+            AI detections (Experimental)
+          </span>
         </button>
 
         <div className="sentinel-nav-muted">
-          ▤ <span>Incident alerts <i>Coming soon</i></span>
+          ▤{" "}
+          <span>
+            Incident alerts <i>Coming soon</i>
+          </span>
         </div>
 
         <div className="sentinel-nav-foot">
-          <Link to="/dashboard">← Original dashboard</Link>
-          <span>Live telemetry • Local session</span>
+          <Link to="/dashboard">
+            ← Original dashboard
+          </Link>
+
+          <span>
+            Live telemetry • Local session
+          </span>
         </div>
       </aside>
 
@@ -348,23 +625,27 @@ export default function SecurityConsole() {
               SECURITY OPERATIONS
             </span>
 
-            <span className="sentinel-slash"> / </span>
+            <span className="sentinel-slash">
+              {" "}
+              /{" "}
+            </span>
+
             Overview
           </div>
 
-<div className="sentinel-topright">
-  <span className="sentinel-live-dot" />
+          <div className="sentinel-topright">
+            <span className="sentinel-live-dot" />
 
-  LIVE API
+            LIVE API
 
-  <span className="sentinel-separator">|</span>
+            <span className="sentinel-separator">
+              |
+            </span>
 
-  {refreshAt || "Connecting..."}
+            {refreshAt || "Connecting..."}
 
-  {/* User profile dropdown */}
-  <ProfileMenu />
-</div>
-
+            <ProfileMenu />
+          </div>
         </header>
 
         <div className="sentinel-content">
@@ -384,11 +665,9 @@ export default function SecurityConsole() {
             </div>
 
             <div
-              className={
-                `sentinel-state ${
-                  stats?.running ? "is-running" : ""
-                }`
-              }
+              className={`sentinel-state ${
+                stats?.running ? "is-running" : ""
+              }`}
             >
               <span className="sentinel-state-dot" />
 
@@ -402,19 +681,28 @@ export default function SecurityConsole() {
 
           {/* Errors */}
           {error && (
-            <div className="sentinel-error" role="alert">
+            <div
+              className="sentinel-error"
+              role="alert"
+            >
               Connection error: {error}
             </div>
           )}
 
           {stats?.last_error && (
-            <div className="sentinel-error" role="alert">
+            <div
+              className="sentinel-error"
+              role="alert"
+            >
               TShark: {stats.last_error}
             </div>
           )}
 
           {aiError && (
-            <div className="sentinel-error" role="alert">
+            <div
+              className="sentinel-error"
+              role="alert"
+            >
               AI detection error: {aiError}
             </div>
           )}
@@ -431,7 +719,9 @@ export default function SecurityConsole() {
 
               <select
                 aria-label="Capture interface"
-                disabled={busy || Boolean(stats?.running)}
+                disabled={
+                  busy || Boolean(stats?.running)
+                }
                 value={
                   stats?.running
                     ? stats.interface ?? selectedInterface
@@ -441,7 +731,9 @@ export default function SecurityConsole() {
                   setSelectedInterface(e.target.value)
                 }
               >
-                <option value="">Select interface</option>
+                <option value="">
+                  Select interface
+                </option>
 
                 {interfaces.map((item) => (
                   <option
@@ -465,13 +757,12 @@ export default function SecurityConsole() {
                 onClick={() => void toggleCapture()}
                 disabled={
                   busy ||
-                  (!stats?.running && !selectedInterface)
+                  (!stats?.running &&
+                    !selectedInterface)
                 }
-                className={
-                  `sentinel-capture-button ${
-                    stats?.running ? "is-stop" : ""
-                  }`
-                }
+                className={`sentinel-capture-button ${
+                  stats?.running ? "is-stop" : ""
+                }`}
               >
                 {busy
                   ? "Working..."
@@ -489,33 +780,49 @@ export default function SecurityConsole() {
           >
             <div className="sentinel-metric">
               <span>TOTAL PACKETS</span>
-              <strong>{packets.toLocaleString()}</strong>
-              <small>Current capture session</small>
+              <strong>
+                {packets.toLocaleString()}
+              </strong>
+              <small>
+                Current capture session
+              </small>
               <b>↗</b>
             </div>
 
             <div className="sentinel-metric">
               <span>DATA OBSERVED</span>
               <strong>
-                {bytesLabel(stats?.total_bytes ?? 0)}
+                {bytesLabel(
+                  stats?.total_bytes ?? 0,
+                )}
               </strong>
-              <small>Captured frame bytes</small>
+              <small>
+                Captured frame bytes
+              </small>
               <b>◫</b>
             </div>
 
             <div className="sentinel-metric">
-              <span>UNIQUE SOURCE IPS</span>
+              <span>
+                UNIQUE SOURCE IPS
+              </span>
               <strong>
-                {(stats?.observed_source_ips ?? 0).toLocaleString()}
+                {(
+                  stats?.observed_source_ips ?? 0
+                ).toLocaleString()}
               </strong>
-              <small>Not necessarily devices</small>
+              <small>
+                Not necessarily devices
+              </small>
               <b>⌘</b>
             </div>
 
             <div className="sentinel-metric">
               <span>LAST PACKET</span>
               <strong className="sentinel-metric-time">
-                {timeLabel(stats?.last_packet_at)}
+                {timeLabel(
+                  stats?.last_packet_at,
+                )}
               </strong>
               <small>Local time</small>
               <b>◷</b>
@@ -527,8 +834,13 @@ export default function SecurityConsole() {
             <section className="sentinel-panel">
               <div className="sentinel-panel-head">
                 <div>
-                  <h2>Protocol distribution</h2>
-                  <p>Traffic by transport protocol</p>
+                  <h2>
+                    Protocol distribution
+                  </h2>
+                  <p>
+                    Traffic by transport
+                    protocol
+                  </p>
                 </div>
 
                 <span className="sentinel-panel-tag">
@@ -538,46 +850,57 @@ export default function SecurityConsole() {
 
               {packets ? (
                 <div className="sentinel-protocols">
-                  {protocols.map(([name, count], index) => (
-                    <div
-                      className="sentinel-protocol"
-                      key={name}
-                    >
-                      <div>
-                        <span
-                          className={
-                            `sentinel-protocol-square square-${
+                  {protocols.map(
+                    ([name, count], index) => (
+                      <div
+                        className="sentinel-protocol"
+                        key={name}
+                      >
+                        <div>
+                          <span
+                            className={`sentinel-protocol-square square-${
                               index % 4
-                            }`
-                          }
-                        />
-                        <strong>{name}</strong>
-                        <span>
-                          {count.toLocaleString()} packets
-                        </span>
-                        <em>
-                          {((100 * count) / packets).toFixed(1)}%
-                        </em>
-                      </div>
+                            }`}
+                          />
 
-                      <div className="sentinel-protocol-track">
-                        <div
-                          className={
-                            `sentinel-protocol-fill fill-${
+                          <strong>
+                            {name}
+                          </strong>
+
+                          <span>
+                            {count.toLocaleString()} packets
+                          </span>
+
+                          <em>
+                            {(
+                              (100 * count) /
+                              packets
+                            ).toFixed(1)}
+                            %
+                          </em>
+                        </div>
+
+                        <div className="sentinel-protocol-track">
+                          <div
+                            className={`sentinel-protocol-fill fill-${
                               index % 4
-                            }`
-                          }
-                          style={{
-                            width: `${(100 * count) / packets}%`,
-                          }}
-                        />
+                            }`}
+                            style={{
+                              width: `${
+                                (100 * count) /
+                                packets
+                              }%`,
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               ) : (
                 <p className="sentinel-empty">
-                  Start capture to see protocol activity.
+                  Start capture to see
+                  protocol activity.
                 </p>
               )}
             </section>
@@ -586,8 +909,12 @@ export default function SecurityConsole() {
             <section className="sentinel-panel">
               <div className="sentinel-panel-head">
                 <div>
-                  <h2>Detection engine</h2>
-                  <p>AEGIS Random Forest v1</p>
+                  <h2>
+                    Detection engine
+                  </h2>
+                  <p>
+                    AEGIS Random Forest v1
+                  </p>
                 </div>
 
                 <span className="sentinel-panel-tag muted">
@@ -605,40 +932,73 @@ export default function SecurityConsole() {
                   }}
                 >
                   <div>
-                    <small>FLOWS ANALYZED</small>
-                    <h2>{analyzedFlows}</h2>
+                    <small>
+                      FLOWS ANALYZED
+                    </small>
+                    <h2>
+                      {analyzedFlows}
+                    </h2>
                   </div>
 
                   <div>
-                    <small>PREDICTED ATTACKS</small>
-                    <h2 style={{ color: "#ef4444" }}>
+                    <small>
+                      PREDICTED ATTACKS
+                    </small>
+
+                    <h2
+                      style={{
+                        color: "#ef4444",
+                      }}
+                    >
                       {attackCount}
                     </h2>
                   </div>
 
                   <div>
-                    <small>PREDICTED BENIGN</small>
-                    <h2 style={{ color: "#22c55e" }}>
+                    <small>
+                      PREDICTED BENIGN
+                    </small>
+
+                    <h2
+                      style={{
+                        color: "#22c55e",
+                      }}
+                    >
                       {benignCount}
                     </h2>
                   </div>
 
                   <div>
-                    <small>HIGHEST ATTACK SCORE</small>
+                    <small>
+                      HIGHEST ATTACK SCORE
+                    </small>
+
                     <h2>
                       {highestScore === null
                         ? "N/A"
-                        : scoreLabel(highestScore)}
+                        : scoreLabel(
+                            highestScore,
+                          )}
                     </h2>
                   </div>
                 </div>
 
-                <p style={{ marginTop: 16, fontSize: 12 }}>
+                <p
+                  style={{
+                    marginTop: 16,
+                    fontSize: 12,
+                  }}
+                >
                   Recent completed-flow predictions only.
-                  Model scores are not verified security threats.
+                  Model scores are not verified security
+                  threats.
                 </p>
 
-                <p style={{ fontSize: 12 }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                  }}
+                >
                   Automated alerts: Disabled
                 </p>
 
@@ -653,19 +1013,26 @@ export default function SecurityConsole() {
           </div>
 
           {/* Activity / AI Detection Tables */}
-          <section className="sentinel-panel sentinel-activity">
+          <section
+            ref={activitySectionRef}
+            className="sentinel-panel sentinel-activity"
+          >
             <div className="sentinel-panel-head">
               <div>
                 <h2>
                   {tab === "ai"
                     ? "Experimental AI detections"
-                    : "Network activity"}
+                    : tab === "hosts"
+                      ? "Observed hosts"
+                      : "Network activity"}
                 </h2>
 
                 <p>
                   {tab === "ai"
                     ? "Completed network flows classified by Random Forest"
-                    : "Latest captured packets and observed source addresses"}
+                    : tab === "hosts"
+                      ? "Observed source addresses from captured network activity"
+                      : "Latest captured packets and observed source addresses"}
                 </p>
               </div>
 
@@ -680,22 +1047,40 @@ export default function SecurityConsole() {
             <div className="sentinel-table-tools">
               <div className="sentinel-tabs">
                 <button
-                  className={tab === "traffic" ? "active" : ""}
-                  onClick={() => setTab("traffic")}
+                  className={
+                    tab === "traffic"
+                      ? "active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setTab("traffic")
+                  }
                 >
                   Packet activity
                 </button>
 
                 <button
-                  className={tab === "hosts" ? "active" : ""}
-                  onClick={() => setTab("hosts")}
+                  className={
+                    tab === "hosts"
+                      ? "active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setTab("hosts")
+                  }
                 >
                   Observed sources
                 </button>
 
                 <button
-                  className={tab === "ai" ? "active" : ""}
-                  onClick={() => setTab("ai")}
+                  className={
+                    tab === "ai"
+                      ? "active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setTab("ai")
+                  }
                 >
                   AI detections ({attackCount})
                 </button>
@@ -705,9 +1090,121 @@ export default function SecurityConsole() {
                 aria-label="Filter traffic or addresses"
                 placeholder="Filter IP, protocol, port or prediction..."
                 value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                onChange={(e) =>
+                  setFilter(e.target.value)
+                }
               />
             </div>
+
+            {/* IP management feedback */}
+            {tab === "hosts" &&
+              ipActionError && (
+                <div
+                  className="sentinel-error"
+                  role="alert"
+                >
+                  IP management:{" "}
+                  {ipActionError}
+                </div>
+              )}
+
+            {tab === "hosts" &&
+              ipActionSuccess && (
+                <div role="status">
+                  {ipActionSuccess}
+                </div>
+              )}
+
+            {/* Block confirmation form */}
+            {tab === "hosts" &&
+              selectedBlockIp && (
+                <div
+                  className="sentinel-panel"
+                  style={{
+                    margin: "16px",
+                    padding: "16px",
+                  }}
+                >
+                  <h3>
+                    Confirm simulated IP block
+                  </h3>
+
+                  <p>
+                    Add{" "}
+                    <strong>
+                      {selectedBlockIp}
+                    </strong>{" "}
+                    to the simulated blocked-IP
+                    list?
+                  </p>
+
+                  <label
+                    htmlFor="block-reason"
+                    className="sentinel-control-label"
+                  >
+                    REASON
+                  </label>
+
+                  <input
+                    id="block-reason"
+                    type="text"
+                    value={blockReason}
+                    maxLength={255}
+                    placeholder="Reason for blocking this IP (optional)"
+                    disabled={ipActionBusy}
+                    onChange={(e) =>
+                      setBlockReason(
+                        e.target.value,
+                      )
+                    }
+                  />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      marginTop: "12px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="sentinel-capture-button is-stop"
+                      disabled={ipActionBusy}
+                      onClick={() =>
+                        void handleConfirmBlock()
+                      }
+                    >
+                      {ipActionBusy
+                        ? "Blocking..."
+                        : "Confirm"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="sentinel-nav-link"
+                      disabled={ipActionBusy}
+                      onClick={() => {
+                        setSelectedBlockIp(null);
+                        setBlockReason("");
+                        setIpActionError("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "12px",
+                    }}
+                  >
+                    Simulation only. This action
+                    does not modify the
+                    operating-system firewall.
+                  </p>
+                </div>
+              )}
 
             <div className="sentinel-table-wrap">
               {/* Packet activity */}
@@ -717,7 +1214,9 @@ export default function SecurityConsole() {
                     <tr>
                       <th>TIME</th>
                       <th>SOURCE IP</th>
-                      <th>DESTINATION IP</th>
+                      <th>
+                        DESTINATION IP
+                      </th>
                       <th>PROTOCOL</th>
                       <th>BYTES</th>
                     </tr>
@@ -725,38 +1224,52 @@ export default function SecurityConsole() {
 
                   <tbody>
                     {recentPackets.length ? (
-                      recentPackets.map((packet, index) => (
-                        <tr
-                          key={`${packet.timestamp}-${index}`}
-                        >
-                          <td>{timeLabel(packet.timestamp)}</td>
+                      recentPackets.map(
+                        (
+                          packet,
+                          index,
+                        ) => (
+                          <tr
+                            key={`${packet.timestamp}-${index}`}
+                          >
+                            <td>
+                              {timeLabel(
+                                packet.timestamp,
+                              )}
+                            </td>
 
-                          <td className="sentinel-mono">
-                            {packet.source_ip || "—"}
-                          </td>
+                            <td className="sentinel-mono">
+                              {packet.source_ip ||
+                                "—"}
+                            </td>
 
-                          <td className="sentinel-mono">
-                            {packet.destination_ip || "—"}
-                          </td>
+                            <td className="sentinel-mono">
+                              {packet.destination_ip ||
+                                "—"}
+                            </td>
 
-                          <td>
-                            <span className="sentinel-proto-chip">
-                              {packet.protocol}
-                            </span>
-                          </td>
+                            <td>
+                              <span className="sentinel-proto-chip">
+                                {
+                                  packet.protocol
+                                }
+                              </span>
+                            </td>
 
-                          <td>
-                            {packet.length.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
+                            <td>
+                              {packet.length.toLocaleString()}
+                            </td>
+                          </tr>
+                        ),
+                      )
                     ) : (
                       <tr>
                         <td
                           className="sentinel-table-empty"
                           colSpan={5}
                         >
-                          No matching packets captured yet
+                          No matching packets
+                          captured yet
                         </td>
                       </tr>
                     )}
@@ -770,37 +1283,95 @@ export default function SecurityConsole() {
                   <thead>
                     <tr>
                       <th>SOURCE IP</th>
-                      <th>PACKETS OBSERVED</th>
+                      <th>
+                        PACKETS OBSERVED
+                      </th>
                       <th>VISIBILITY</th>
+                      <th>ACTION</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {observedHosts.length ? (
-                      observedHosts.map((host) => (
-                        <tr key={host.ip}>
-                          <td className="sentinel-mono">
-                            {host.ip}
-                          </td>
+                      observedHosts.map(
+                        (host) => {
+                          const blocked =
+                            isIpBlocked(
+                              host.ip,
+                            );
 
-                          <td>
-                            {host.packets.toLocaleString()}
-                          </td>
+                          return (
+                            <tr key={host.ip}>
+                              <td className="sentinel-mono">
+                                {host.ip}
+                              </td>
 
-                          <td>
-                            <span className="sentinel-proto-chip">
-                              Observed only
-                            </span>
-                          </td>
-                        </tr>
-                      ))
+                              <td>
+                                {host.packets.toLocaleString()}
+                              </td>
+
+                              <td>
+                                <span className="sentinel-proto-chip">
+                                  {blocked
+                                    ? "Simulated blocked"
+                                    : "Observed only"}
+                                </span>
+                              </td>
+
+                              <td>
+                                {blocked ? (
+                                  <button
+                                    type="button"
+                                    className="sentinel-capture-button"
+                                    disabled={
+                                      ipActionBusy
+                                    }
+                                    onClick={() =>
+                                      void handleUnblockIp(
+                                        host.ip,
+                                      )
+                                    }
+                                  >
+                                    Unblock IP
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="sentinel-capture-button is-stop"
+                                    disabled={
+                                      ipActionBusy
+                                    }
+                                    onClick={() => {
+                                      setSelectedBlockIp(
+                                        host.ip,
+                                      );
+                                      setBlockReason(
+                                        "",
+                                      );
+                                      setIpActionError(
+                                        "",
+                                      );
+                                      setIpActionSuccess(
+                                        "",
+                                      );
+                                    }}
+                                  >
+                                    Block IP
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        },
+                      )
                     ) : (
                       <tr>
                         <td
                           className="sentinel-table-empty"
-                          colSpan={3}
+                          colSpan={4}
                         >
-                          No source addresses observed yet
+                          No source addresses
+                          observed yet
                         </td>
                       </tr>
                     )}
@@ -814,78 +1385,111 @@ export default function SecurityConsole() {
                   <thead>
                     <tr>
                       <th>SOURCE IP</th>
-                      <th>DESTINATION IP</th>
+                      <th>
+                        DESTINATION IP
+                      </th>
                       <th>PROTOCOL</th>
                       <th>PACKETS</th>
                       <th>PREDICTION</th>
-                      <th>ATTACK SCORE</th>
+                      <th>
+                        ATTACK SCORE
+                      </th>
                       <th>COMPLETION</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {filteredPredictions.length ? (
-                      filteredPredictions.map((flow, index) => {
-                        const isAttack =
-                          flow.ai_detection.prediction ===
-                          "ATTACK";
+                      filteredPredictions.map(
+                        (
+                          flow,
+                          index,
+                        ) => {
+                          const isAttack =
+                            flow.ai_detection
+                              .prediction ===
+                            "ATTACK";
 
-                        return (
-                          <tr key={index}>
-                            <td className="sentinel-mono">
-                              {flow.source_ip}
-                              <small>
-                                :{flow.source_port ?? "-"}
-                              </small>
-                            </td>
+                          return (
+                            <tr key={index}>
+                              <td className="sentinel-mono">
+                                {
+                                  flow.source_ip
+                                }
+                                <small>
+                                  :
+                                  {flow.source_port ??
+                                    "-"}
+                                </small>
+                              </td>
 
-                            <td className="sentinel-mono">
-                              {flow.destination_ip}
-                              <small>
-                                :{flow.destination_port ?? "-"}
-                              </small>
-                            </td>
+                              <td className="sentinel-mono">
+                                {
+                                  flow.destination_ip
+                                }
+                                <small>
+                                  :
+                                  {flow.destination_port ??
+                                    "-"}
+                                </small>
+                              </td>
 
-                            <td>
-                              <span className="sentinel-proto-chip">
-                                {flow.protocol}
-                              </span>
-                            </td>
+                              <td>
+                                <span className="sentinel-proto-chip">
+                                  {
+                                    flow.protocol
+                                  }
+                                </span>
+                              </td>
 
-                            <td>{flow.packet_count}</td>
+                              <td>
+                                {
+                                  flow.packet_count
+                                }
+                              </td>
 
-                            <td>
-                              <strong
-                                style={{
-                                  color: isAttack
-                                    ? "#ef4444"
-                                    : "#22c55e",
-                                }}
-                              >
-                                {flow.ai_detection.prediction}
-                              </strong>
-                            </td>
+                              <td>
+                                <strong
+                                  style={{
+                                    color:
+                                      isAttack
+                                        ? "#ef4444"
+                                        : "#22c55e",
+                                  }}
+                                >
+                                  {
+                                    flow
+                                      .ai_detection
+                                      .prediction
+                                  }
+                                </strong>
+                              </td>
 
-                            <td>
-                              {scoreLabel(
-                                flow.ai_detection.attack_probability,
-                              )}
-                            </td>
+                              <td>
+                                {scoreLabel(
+                                  flow
+                                    .ai_detection
+                                    .attack_probability,
+                                )}
+                              </td>
 
-                            <td>
-                              {flow.completion_reason ?? "-"}
-                            </td>
-                          </tr>
-                        );
-                      })
+                              <td>
+                                {flow.completion_reason ??
+                                  "-"}
+                              </td>
+                            </tr>
+                          );
+                        },
+                      )
                     ) : (
                       <tr>
                         <td
                           className="sentinel-table-empty"
                           colSpan={7}
                         >
-                          No completed flows match the current filter.
-                          Start or stop capture to generate predictions.
+                          No completed flows match the
+                          current filter. Start or stop
+                          capture to generate predictions.
                         </td>
                       </tr>
                     )}
@@ -906,9 +1510,12 @@ export default function SecurityConsole() {
                     } recent experimental flow predictions`}
 
               {" • "}
+
               {tab === "ai"
                 ? "Not confirmed security incidents"
-                : "No endpoint agent or device identity verification"}
+                : tab === "hosts"
+                  ? "Block actions are simulation only"
+                  : "No endpoint agent or device identity verification"}
             </footer>
           </section>
 
