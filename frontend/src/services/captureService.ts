@@ -1,7 +1,11 @@
 
 import { reportSessionExpiry } from "./auth/sessionExpiryEvents";
+import { resolveApiBaseUrl } from "./apiBaseUrl";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_URL = resolveApiBaseUrl(
+  import.meta.env.VITE_API_URL,
+  import.meta.env.VITE_API_BASE_URL,
+);
 
 // ============================================================
 // Network Interface Types

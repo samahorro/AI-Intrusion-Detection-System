@@ -1,4 +1,5 @@
 import { ApiClient } from "../apiClient";
+import { resolveApiBaseUrl } from "../apiBaseUrl";
 import { FetchTransport } from "../fetchTransport";
 
 import { BackendAuthService } from "./BackendAuthService";
@@ -7,10 +8,10 @@ import { BrowserSessionStore } from "./sessionStore";
 
 const sessionStore = new BrowserSessionStore();
 
-const apiBaseUrl = (
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://localhost:8000"
-).replace(/\/$/, "");
+const apiBaseUrl = resolveApiBaseUrl(
+  import.meta.env.VITE_API_URL,
+  import.meta.env.VITE_API_BASE_URL,
+);
 
 const backendAuthService =
   new BackendAuthService(
