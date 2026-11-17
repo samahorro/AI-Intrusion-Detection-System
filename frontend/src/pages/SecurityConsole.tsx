@@ -267,8 +267,48 @@ export default function SecurityConsole() {
   }
 
   useEffect(() => {
-    void loadBlockedIps();
-  }, []);
+  let active = true;
+
+  async function initializeBlockedIps() {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/blocked-ips`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Unable to load blocked IPs (${response.status})`,
+        );
+      }
+
+      const data =
+        (await response.json()) as BlockedIpListResponse;
+
+      if (active) {
+        setBlockedIps(data.items);
+        setIpActionError("");
+      }
+    } catch (e) {
+      if (active) {
+        setIpActionError(
+          e instanceof Error
+            ? e.message
+            : "Unable to load blocked IP addresses",
+        );
+      }
+    }
+  }
+
+  void initializeBlockedIps();
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   function isIpBlocked(ip: string) {
     return blockedIps.some(
