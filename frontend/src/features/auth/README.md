@@ -12,7 +12,7 @@ Authentication now uses the backend session API by default:
 
 The browser sends the backend session cookie by using `credentials: "include"` in the shared fetch transport. The frontend does not create or store a fake access token for backend-authenticated sessions.
 
-Set `VITE_API_BASE_URL` when the backend is not running at `http://localhost:8000`.
+Set `VITE_API_URL` when the backend is not running at `http://localhost:8000`. The older `VITE_API_BASE_URL` setting remains supported for existing configurations. When both are defined, `VITE_API_URL` takes precedence so authentication and capture requests use the same backend.
 
 ## Optional mock mode
 
