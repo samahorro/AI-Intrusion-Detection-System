@@ -72,4 +72,13 @@ export const appRouteRegistry: readonly AppRouteDefinition[] = [
     requiresAuth: true,
     showInPrimaryNavigation: false,
   },
+  {
+  id: "register",
+  path: "/register",
+  label: "Create account",
+  owner: "robert",
+  area: "authentication",
+  requiresAuth: false,
+  showInPrimaryNavigation: false,
+  },
 ];
