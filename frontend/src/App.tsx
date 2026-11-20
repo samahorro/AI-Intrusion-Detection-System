@@ -1,4 +1,9 @@
-import { useState, type PropsWithChildren, type ReactNode } from "react";
+import {
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
+
 import {
   BrowserRouter,
   Link,
@@ -12,40 +17,81 @@ import {
   AuthProvider,
   LoginPage,
   ProtectedRoute,
+  RegisterPage,
   useAuth,
 } from "./features/auth";
+
 import { AppShell } from "./layouts";
 import { appRouteRegistry } from "./navigation";
+
 import Account from "./pages/Account";
 import Dashboard from "./pages/Dashboard";
 import Alerts from "./pages/Alerts";
 import SecurityConsole from "./pages/SecurityConsole";
+
 import "./App.css";
 
-/** Keep the registry as the source of truth for routable paths and navigation. */
-const pageByRouteId: Readonly<Record<string, ReactNode>> = {
+/**
+ * Keep the route registry as the source of truth
+ * for routable paths and navigation.
+ */
+const pageByRouteId: Readonly<
+  Record<string, ReactNode>
+> = {
   login: <LoginPage />,
+  register: <RegisterPage />,
   dashboard: <Dashboard />,
   alerts: <Alerts />,
   console: <SecurityConsole />,
   account: <Account />,
 };
 
-function ProtectedPage({ children }: PropsWithChildren) {
-  return <ProtectedRoute>{children}</ProtectedRoute>;
+function ProtectedPage({
+  children,
+}: PropsWithChildren) {
+  return (
+    <ProtectedRoute>
+      {children}
+    </ProtectedRoute>
+  );
 }
 
-function AuthenticatedLayout({ children }: PropsWithChildren) {
-  const { state, logout } = useAuth();
-  const { pathname } = useLocation();
-  const [signOutError, setSignOutError] = useState("");
-  const [isSigningOut, setIsSigningOut] = useState(false);
+function AuthenticatedLayout({
+  children,
+}: PropsWithChildren) {
+  const {
+    state,
+    logout,
+  } = useAuth();
 
-  // Keep Kevin's Security Console and the login portal standalone.
+  const {
+    pathname,
+  } = useLocation();
+
+  const [
+    signOutError,
+    setSignOutError,
+  ] = useState("");
+
+  const [
+    isSigningOut,
+    setIsSigningOut,
+  ] = useState(false);
+
+  /*
+   * Keep these routes standalone:
+   *
+   * - Login
+   * - Register
+   * - Security Console
+   *
+   * The remaining authenticated pages use AppShell.
+   */
   if (
     state.status !== "authenticated" ||
     pathname === "/console" ||
-    pathname === "/login"
+    pathname === "/login" ||
+    pathname === "/register"
   ) {
     return <>{children}</>;
   }
@@ -54,10 +100,17 @@ function AuthenticatedLayout({ children }: PropsWithChildren) {
     <AppShell
       contentTag="div"
       currentPath={pathname}
-      userLabel={state.session.user.displayName}
-      headerActions={(
+      userLabel={
+        state.session.user.displayName
+      }
+      headerActions={
         <>
-          {signOutError && <span role="alert">{signOutError}</span>}
+          {signOutError && (
+            <span role="alert">
+              {signOutError}
+            </span>
+          )}
+
           <button
             type="button"
             className="nav-bar__logout"
@@ -65,17 +118,24 @@ function AuthenticatedLayout({ children }: PropsWithChildren) {
             onClick={() => {
               setSignOutError("");
               setIsSigningOut(true);
-              void logout().catch(() => {
-                setSignOutError("Sign out failed. Please retry.");
-              }).finally(() => {
-                setIsSigningOut(false);
-              });
+
+              void logout()
+                .catch(() => {
+                  setSignOutError(
+                    "Sign out failed. Please retry.",
+                  );
+                })
+                .finally(() => {
+                  setIsSigningOut(false);
+                });
             }}
           >
-            {isSigningOut ? "Signing out..." : "Sign out"}
+            {isSigningOut
+              ? "Signing out..."
+              : "Sign out"}
           </button>
         </>
-      )}
+      }
     >
       {children}
     </AppShell>
@@ -85,9 +145,18 @@ function AuthenticatedLayout({ children }: PropsWithChildren) {
 function NotFound() {
   return (
     <main className="page">
-      <h1>Page not found</h1>
-      <p>This AEGIS page does not exist or is not available yet.</p>
-      <Link to="/console">Return to Security Console</Link>
+      <h1>
+        Page not found
+      </h1>
+
+      <p>
+        This AEGIS page does not exist
+        or is not available yet.
+      </p>
+
+      <Link to="/console">
+        Return to Security Console
+      </Link>
     </main>
   );
 }
@@ -99,33 +168,62 @@ function ApplicationRoutes() {
         <Routes>
           <Route
             path="/"
-            element={(
+            element={
               <ProtectedPage>
-                <Navigate to="/console" replace />
+                <Navigate
+                  to="/console"
+                  replace
+                />
               </ProtectedPage>
-            )}
+            }
           />
 
-          {appRouteRegistry.map((route) => {
-            const page = pageByRouteId[route.id];
-            // The planned /admin/users route has no view yet, so do not
-            // expose a broken route or advertise it as implemented.
-            if (page === undefined) return null;
+          {appRouteRegistry.map(
+            (route) => {
+              const page =
+                pageByRouteId[
+                  route.id
+                ];
 
-            return (
-              <Route
-                key={route.id}
-                path={route.path}
-                element={route.requiresAuth
-                  ? <ProtectedPage>{page}</ProtectedPage>
-                  : page}
-              />
-            );
-          })}
+              /*
+               * Do not expose routes that
+               * do not have an implemented
+               * page yet.
+               *
+               * Example:
+               * /admin/users
+               */
+              if (
+                page === undefined
+              ) {
+                return null;
+              }
+
+              return (
+                <Route
+                  key={route.id}
+                  path={route.path}
+                  element={
+                    route.requiresAuth
+                      ? (
+                        <ProtectedPage>
+                          {page}
+                        </ProtectedPage>
+                      )
+                      : page
+                  }
+                />
+              );
+            },
+          )}
 
           <Route
             path="*"
-            element={<ProtectedPage><NotFound /></ProtectedPage>}
+            element={
+              <ProtectedPage>
+                <NotFound />
+              </ProtectedPage>
+            }
           />
         </Routes>
       </AuthenticatedLayout>
