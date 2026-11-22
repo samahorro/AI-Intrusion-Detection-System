@@ -18,13 +18,11 @@ from backend.app.capture.flow_aggregator import (
     FlowTracker,
     aggregate_packets,
 )
-
+from ml.detection.port_scan_tracker import PortScanTracker
 from ml.preprocessing.flow_preprocessor import (
     REQUIRED_FEATURES,
     preprocess_flow,
 )
-
-from ml.detection.port_scan_tracker import PortScanTracker
 
 
 class FlowBridge:

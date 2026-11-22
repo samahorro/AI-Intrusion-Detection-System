@@ -1,17 +1,17 @@
 
 """KAN-253: Automated intrusion-detection regression tests."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
-from backend.app.main import create_app
 from backend.app.capture.flow_bridge import FlowBridge
+from backend.app.main import create_app
 
 
 def make_packet(port, syn=True, ack=False):
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "source_ip": "192.0.2.10",
         "destination_ip": "192.0.2.20",
         "source_port": 50000,
@@ -105,8 +105,9 @@ def test_unauthenticated_alert_access_denied():
 
 def test_authenticated_user_can_retrieve_alerts():
     from unittest.mock import patch
-    from backend.app.capture.capture_service import capture_service
+
     from backend.app.auth.dependencies import require_authenticated_user
+    from backend.app.capture.capture_service import capture_service
 
     app = create_app(initialize_database=False)
 

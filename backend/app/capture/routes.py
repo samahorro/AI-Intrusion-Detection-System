@@ -17,7 +17,6 @@ from ..auth.dependencies import require_authenticated_user
 from .capture_service import capture_service
 from .interface_service import list_capture_interfaces
 
-
 # ==================================================
 # CAPTURE ROUTER
 # All capture and experimental AI endpoints require
