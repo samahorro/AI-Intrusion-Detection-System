@@ -1,0 +1,31 @@
+{
+  "model_id": "aegis_cicids2017_binary_rf_v1",
+  "algorithm": "RandomForestClassifier",
+  "task": "binary_network_flow_classification",
+  "feature_names_ordered": [
+    "Flow Duration",
+    "Total Fwd Packets",
+    "Total Backward Packets",
+    "Flow Bytes/s",
+    "Flow Packets/s"
+  ],
+  "label_mapping": {
+    "0": "BENIGN",
+    "1": "ATTACK"
+  },
+  "positive_class": 1,
+  "threshold": 0.5,
+  "flow_duration_unit_expected": "microseconds",
+  "live_feature_equivalence_verified": false,
+  "data_source": "CICIDS2017 cleaned flow CSV; notebook 10 grouped five-feature splits",
+  "random_state": 42,
+  "versions": {
+    "python": "3.11.0",
+    "scikit_learn": "1.9.0",
+    "pandas": "3.0.6",
+    "numpy": "2.4.6"
+  },
+  "training_records": 1791100,
+  "validation_records": 376404,
+  "test_records": 405023
+}
