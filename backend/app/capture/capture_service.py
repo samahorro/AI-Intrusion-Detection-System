@@ -7,7 +7,8 @@ bounded, in-memory packet statistics.
 
 Features:
 - Start and stop live packet capture
-- Extract TCP SYN, FIN, and RST flags
+- Extract TCP SYN, ACK, FIN, and RST flags
+- Support 13-field legacy and 14-field TShark packet records
 - Track packet counts, bytes, protocols, and source IPs
 - Forward packets to the network flow aggregator
 - Flush remaining flows when supported by FlowBridge
@@ -103,6 +104,8 @@ class CaptureService:
             "-e",
             "tcp.flags.syn",
             "-e",
+            "tcp.flags.ack",
+            "-e",
             "tcp.flags.fin",
             "-e",
             "tcp.flags.reset",
@@ -163,7 +166,7 @@ class CaptureService:
             }
 
     # ==================================================
-    # READ AND PROCESS CAPTURED PACKETS
+    # READ AND PROCESS CAPD PACKETS
     # ==================================================
 
     def _read_packets(self, process, generation):
@@ -171,7 +174,17 @@ class CaptureService:
             for line in process.stdout:
                 parts = line.rstrip("\r\n").split("|")
 
-                if len(parts) != 13:
+                # --------------------------------------
+                # SUPPORT LEGACY AND CURRENT FORMATS
+                # --------------------------------------
+
+                if len(parts) == 13:
+                    # Legacy records do not contain the
+                    # TCP ACK field at position 11.
+                    parts.insert(11, "")
+
+                elif len(parts) != 14:
+                    # Skip malformed records.
                     continue
 
                 (
@@ -186,16 +199,23 @@ class CaptureService:
                     udp_source,
                     udp_dest,
                     tcp_syn,
+                    tcp_ack,
                     tcp_fin,
                     tcp_rst,
                 ) = parts
 
+                # --------------------------------------
+                # VALIDATE PACKET DATA
+                # --------------------------------------
+
                 try:
                     length = int(size)
+
                     timestamp = datetime.fromtimestamp(
                         float(epoch),
                         tz=UTC,
                     ).isoformat()
+
                 except (
                     ValueError,
                     OverflowError,
@@ -203,15 +223,29 @@ class CaptureService:
                 ):
                     continue
 
+                # --------------------------------------
+                # DETERMINE PROTOCOL
+                # --------------------------------------
+
                 if tcp_source or tcp_dest:
                     protocol = "TCP"
+
                 elif udp_source or udp_dest:
                     protocol = "UDP"
+
                 else:
                     protocol = "OTHER"
 
+                # --------------------------------------
+                # IDENTIFY SOURCE AND DESTINATION
+                # --------------------------------------
+
                 source = src4 or src6
                 destination = dst4 or dst6
+
+                # --------------------------------------
+                # CONSTRUCT PACKET RECORD
+                # --------------------------------------
 
                 packet = {
                     "timestamp": timestamp,
@@ -226,9 +260,22 @@ class CaptureService:
                         tcp_dest or udp_dest or None
                     ),
                     "tcp_syn": tcp_syn == "1",
+
+                    # Missing ACK information remains
+                    # unknown instead of becoming False.
+                    "tcp_ack": (
+                        tcp_ack == "1"
+                        if tcp_ack in ("0", "1")
+                        else None
+                    ),
+
                     "tcp_fin": tcp_fin == "1",
                     "tcp_rst": tcp_rst == "1",
                 }
+
+                # --------------------------------------
+                # UPDATE PACKET STATISTICS
+                # --------------------------------------
 
                 with self._lock:
                     if generation != self._generation:
@@ -244,6 +291,8 @@ class CaptureService:
 
                     self.recent_packets.appendleft(packet)
 
+                    # Forward packet for flow aggregation
+                    # and intrusion detection processing.
                     self.flow_bridge.add_packet(packet)
 
                     self.last_packet_at = timestamp
@@ -252,6 +301,7 @@ class CaptureService:
             with self._lock:
                 if generation == self._generation:
                     self.last_error = str(exc)
+
         finally:
             if process.stdout is not None:
                 process.stdout.close()
@@ -280,7 +330,9 @@ class CaptureService:
                     }
                     for ip, count in self.source_ips.most_common(10)
                 ],
-                "recent_packets": list(self.recent_packets),
+                "recent_packets": list(
+                    self.recent_packets
+                ),
                 "last_packet_at": self.last_packet_at,
                 "last_error": self.last_error,
             }
@@ -303,6 +355,7 @@ class CaptureService:
 
             try:
                 process.wait(timeout=5)
+
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=5)
@@ -313,7 +366,7 @@ class CaptureService:
             self.interface = None
 
             # Compatibility with FlowBridge implementations
-            # that do not yet support flushing.
+            # that do not support flushing.
             flush = getattr(
                 self.flow_bridge,
                 "flush",
