@@ -32,3 +32,16 @@ export {
   isAuthenticated,
   isAuthLoading,
 } from "./authSelectors";
+
+export {
+  RegisterForm,
+} from "./RegisterForm";
+
+export type {
+  RegisterFormProps,
+  RegisterFormValues,
+} from "./RegisterForm";
+
+export {
+  RegisterPage,
+} from "./RegisterPage";

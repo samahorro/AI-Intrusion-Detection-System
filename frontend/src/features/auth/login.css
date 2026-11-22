@@ -211,3 +211,63 @@
   outline: 2px solid #d9bbff;
   outline-offset: 2px;
 }
+
+.auth-account-link {
+  margin: 20px 0 0;
+  text-align: center;
+  color: #bcb1db;
+  font-size: 13px;
+}
+
+.auth-account-link a {
+  color: #c69cff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-account-link a:hover {
+  text-decoration: underline;
+}
+
+.auth-registration-success {
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  color: #9cf4cc;
+  background: rgba(48, 190, 136, 0.1);
+  border: 1px solid rgba(82, 225, 169, 0.32);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.auth-password-rules {
+  margin-top: -6px;
+  padding: 12px 14px;
+  background: rgba(10, 9, 31, 0.35);
+  border: 1px solid rgba(179, 146, 231, 0.18);
+  border-radius: 10px;
+  color: #a89bc9;
+  font-size: 12px;
+}
+
+.auth-password-rules ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.auth-password-rules li::before {
+  content: "○";
+  margin-right: 8px;
+  color: #8f83b4;
+}
+
+.auth-password-rules li.is-valid {
+  color: #8be4bd;
+}
+
+.auth-password-rules li.is-valid::before {
+  content: "✓";
+  color: #55d9a3;
+}

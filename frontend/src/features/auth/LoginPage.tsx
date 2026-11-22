@@ -1,6 +1,11 @@
-
 import { useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
 import { safeReturnPath } from "../../navigation/safeReturnPath";
 
 import { Card } from "../../components/base";
@@ -75,7 +80,10 @@ const networkEndpoints: [number, number][] = [
 
 function AegisBackdrop() {
   return (
-    <div className="aegis-backdrop" aria-hidden="true">
+    <div
+      className="aegis-backdrop"
+      aria-hidden="true"
+    >
       <div className="aegis-backdrop__grid" />
 
       <div className="aegis-backdrop__light aegis-backdrop__light--left" />
@@ -107,9 +115,20 @@ function AegisBackdrop() {
               x2="100%"
               y2="100%"
             >
-              <stop offset="0%" stopColor="#b987ff" />
-              <stop offset="50%" stopColor="#ff91d8" />
-              <stop offset="100%" stopColor="#8d7cff" />
+              <stop
+                offset="0%"
+                stopColor="#b987ff"
+              />
+
+              <stop
+                offset="50%"
+                stopColor="#ff91d8"
+              />
+
+              <stop
+                offset="100%"
+                stopColor="#8d7cff"
+              />
             </linearGradient>
 
             <filter
@@ -119,11 +138,17 @@ function AegisBackdrop() {
               width="220%"
               height="220%"
             >
-              <feGaussianBlur stdDeviation="3.2" />
+              <feGaussianBlur
+                stdDeviation="3.2"
+              />
             </filter>
 
             <clipPath id="aegis-route-clip">
-              <circle cx="300" cy="300" r="252" />
+              <circle
+                cx="300"
+                cy="300"
+                r="252"
+              />
             </clipPath>
           </defs>
 
@@ -132,50 +157,58 @@ function AegisBackdrop() {
             className="aegis-globe__surface-routes"
             clipPath="url(#aegis-route-clip)"
           >
-            {networkRoutes.map((path, index) => (
-              <g key={path}>
-                <path
-                  d={path}
-                  className="aegis-globe__route-glow"
-                />
+            {networkRoutes.map(
+              (path, index) => (
+                <g key={path}>
+                  <path
+                    d={path}
+                    className="aegis-globe__route-glow"
+                  />
 
-                <path
-                  d={path}
-                  className="aegis-globe__route-line"
-                  style={{
-                    animationDelay: `${index * -0.8}s`,
-                  }}
-                />
-              </g>
-            ))}
+                  <path
+                    d={path}
+                    className="aegis-globe__route-line"
+                    style={{
+                      animationDelay: `${
+                        index * -0.8
+                      }s`,
+                    }}
+                  />
+                </g>
+              ),
+            )}
           </g>
 
           {/* Network endpoints */}
           <g className="aegis-globe__endpoints">
-            {networkEndpoints.map(([cx, cy], index) => (
-              <g
-                key={`${cx}-${cy}`}
-                className="aegis-globe__endpoint"
-                style={{
-                  animationDelay: `${index * -0.31}s`,
-                }}
-              >
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r="9"
-                  fill="#d89bff"
-                  opacity="0.14"
-                />
+            {networkEndpoints.map(
+              ([cx, cy], index) => (
+                <g
+                  key={`${cx}-${cy}`}
+                  className="aegis-globe__endpoint"
+                  style={{
+                    animationDelay: `${
+                      index * -0.31
+                    }s`,
+                  }}
+                >
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r="9"
+                    fill="#d89bff"
+                    opacity="0.14"
+                  />
 
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r="3.4"
-                  fill="#f3d1ff"
-                />
-              </g>
-            ))}
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r="3.4"
+                    fill="#f3d1ff"
+                  />
+                </g>
+              ),
+            )}
           </g>
 
           {/* Orbit rings */}
@@ -218,20 +251,51 @@ function AegisBackdrop() {
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, login, refreshSession } = useAuth();
-  const locationState = location.state as { from?: unknown; reason?: unknown } | null;
-  const returnPath = safeReturnPath(locationState?.from);
 
-  const [errorMessage, setErrorMessage] = useState<string>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    state,
+    login,
+    refreshSession,
+  } = useAuth();
+
+  const locationState =
+    location.state as {
+      from?: unknown;
+      reason?: unknown;
+      registrationMessage?: unknown;
+    } | null;
+
+  const returnPath =
+    safeReturnPath(
+      locationState?.from,
+    );
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState<string>();
+
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
 
   // Redirect authenticated users
-  if (state.status === "authenticated") {
-    return <Navigate to={returnPath} replace />;
+  if (
+    state.status ===
+    "authenticated"
+  ) {
+    return (
+      <Navigate
+        to={returnPath}
+        replace
+      />
+    );
   }
 
   const isCheckingSession =
-    state.status === "loading" && !isSubmitting;
+    state.status === "loading" &&
+    !isSubmitting;
 
   return (
     <main className="auth-page">
@@ -273,7 +337,8 @@ export function LoginPage() {
               className="auth-session-status"
               role="status"
             >
-              Loading authentication state...
+              Loading authentication
+              state...
             </p>
           </Card>
         ) : (
@@ -282,46 +347,112 @@ export function LoginPage() {
             title="Welcome back"
             description="Sign in to your AEGIS account to continue."
           >
-            {(state.status === "unavailable") && (
-              <div className="auth-login-form__error" role="alert">
-                Unable to verify your previous session because the authentication
-                service is unreachable. You can retry the check or sign in again.
-                <button type="button" onClick={() => { void refreshSession(); }}>
+            {state.status ===
+              "unavailable" && (
+              <div
+                className="auth-login-form__error"
+                role="alert"
+              >
+                Unable to verify your
+                previous session because
+                the authentication service
+                is unreachable. You can
+                retry the check or sign in
+                again.
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshSession();
+                  }}
+                >
                   Retry session check
                 </button>
               </div>
             )}
-            {(state.status === "anonymous" &&
-              (state.reason === "expired" || locationState?.reason === "expired")) && (
-              <p role="status" className="auth-session-status">
-                Your session expired. Sign in again to continue.
+
+            {state.status ===
+              "anonymous" &&
+              (state.reason ===
+                "expired" ||
+                locationState?.reason ===
+                  "expired") && (
+                <p
+                  role="status"
+                  className="auth-session-status"
+                >
+                  Your session expired.
+                  Sign in again to
+                  continue.
+                </p>
+              )}
+
+            {typeof locationState?.registrationMessage ===
+              "string" && (
+              <p
+                className="auth-registration-success"
+                role="status"
+              >
+                {
+                  locationState.registrationMessage
+                }
               </p>
             )}
+
             <LoginForm
-              isSubmitting={isSubmitting}
-              errorMessage={errorMessage}
+              isSubmitting={
+                isSubmitting
+              }
+              errorMessage={
+                errorMessage
+              }
               onClearError={() => {
-                setErrorMessage(undefined);
+                setErrorMessage(
+                  undefined,
+                );
               }}
-              onSubmit={async (credentials) => {
-                setErrorMessage(undefined);
-                setIsSubmitting(true);
+              onSubmit={async (
+                credentials,
+              ) => {
+                setErrorMessage(
+                  undefined,
+                );
+
+                setIsSubmitting(
+                  true,
+                );
 
                 try {
-                  await login(credentials);
+                  await login(
+                    credentials,
+                  );
 
-                  navigate(returnPath, {
-                    replace: true,
-                  });
+                  navigate(
+                    returnPath,
+                    {
+                      replace: true,
+                    },
+                  );
                 } catch (error) {
                   setErrorMessage(
-                    getLoginErrorMessage(error),
+                    getLoginErrorMessage(
+                      error,
+                    ),
                   );
                 } finally {
-                  setIsSubmitting(false);
+                  setIsSubmitting(
+                    false,
+                  );
                 }
               }}
             />
+
+            <p className="auth-account-link">
+              Don't have an account?{" "}
+              <Link to="/register">
+                Create account
+              </Link>
+            </p>
           </Card>
         )}
 
@@ -337,7 +468,9 @@ export function LoginPage() {
 
       {/* Footer */}
       <div className="auth-page__footer">
-        AEGIS <span>—</span> NETWORK INTRUSION DETECTION SYSTEM
+        AEGIS <span>—</span>{" "}
+        NETWORK INTRUSION
+        DETECTION SYSTEM
       </div>
     </main>
   );
