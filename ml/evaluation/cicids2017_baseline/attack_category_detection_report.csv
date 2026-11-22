@@ -1,0 +1,14 @@
+Label,Total,Detected,Missed,Detection Rate (%)
+Infiltration,3,0,3,0.0
+Web Attack - SQL Injection,1,0,1,0.0
+Web Attack - XSS,97,4,93,4.12
+Web Attack - Brute Force,247,25,222,10.12
+Bot,312,199,113,63.78
+SSH-Patator,481,420,61,87.32
+FTP-Patator,828,806,22,97.34
+DoS GoldenEye,1540,1507,33,97.86
+DoS Slowhttptest,761,747,14,98.16
+DoS slowloris,805,793,12,98.51
+DoS Hulk,26077,25768,309,98.82
+DDoS,19340,19311,29,99.85
+PortScan,16195,16187,8,99.95
