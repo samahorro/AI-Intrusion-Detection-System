@@ -1,0 +1,29 @@
+{
+  "dataset": "CICIDS2017",
+  "splits": "Notebook 10 deterministic five-feature-signature split",
+  "features_ordered": [
+    "Flow Duration",
+    "Total Fwd Packets",
+    "Total Backward Packets",
+    "Flow Bytes/s",
+    "Flow Packets/s"
+  ],
+  "target": "BinaryLabel",
+  "positive_class": 1,
+  "common_threshold": 0.5,
+  "initial_alternative_training_rows": 250000,
+  "validation_rows": 376404,
+  "random_state": 42,
+  "reference_random_forest": "aegis_cicids2017_binary_rf_v1",
+  "reference_random_forest_training_rows": 1791100,
+  "python": "3.11.0",
+  "scikit_learn": "1.9.0",
+  "notes": [
+    "No held-out test split was loaded in Notebook 12.",
+    "Threshold and hyperparameter exploration on validation are selection-biased.",
+    "Original Random Forest was fitted on the full training partition.",
+    "Alternatives initially used an exploratory stratified training sample.",
+    "Live AEGIS feature equivalence is not verified.",
+    "Do not promote or overwrite the deployed model based on these results alone."
+  ]
+}

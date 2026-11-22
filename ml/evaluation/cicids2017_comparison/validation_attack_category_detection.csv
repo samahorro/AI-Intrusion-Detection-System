@@ -1,0 +1,43 @@
+Model,Label,Total,Detected,Missed,Detection Rate (%)
+Random Forest (existing),Heartbleed,1,0,1,0.0
+Random Forest (existing),Infiltration,1,0,1,0.0
+Random Forest (existing),Web Attack - XSS,114,4,110,3.51
+Random Forest (existing),Web Attack - Brute Force,203,15,188,7.39
+Random Forest (existing),Web Attack - SQL Injection,5,2,3,40.0
+Random Forest (existing),Bot,335,193,142,57.61
+Random Forest (existing),SSH-Patator,464,430,34,92.67
+Random Forest (existing),FTP-Patator,800,780,20,97.5
+Random Forest (existing),DoS GoldenEye,1518,1487,31,97.96
+Random Forest (existing),DoS slowloris,812,798,14,98.28
+Random Forest (existing),DoS Hulk,26162,25828,334,98.72
+Random Forest (existing),DoS Slowhttptest,812,802,10,98.77
+Random Forest (existing),DDoS,19019,18986,33,99.83
+Random Forest (existing),PortScan,8052,8041,11,99.86
+Logistic Regression,Bot,335,0,335,0.0
+Logistic Regression,Heartbleed,1,0,1,0.0
+Logistic Regression,FTP-Patator,800,0,800,0.0
+Logistic Regression,Web Attack - Brute Force,203,0,203,0.0
+Logistic Regression,Web Attack - SQL Injection,5,0,5,0.0
+Logistic Regression,SSH-Patator,464,1,463,0.22
+Logistic Regression,PortScan,8052,29,8023,0.36
+Logistic Regression,Web Attack - XSS,114,1,113,0.88
+Logistic Regression,DDoS,19019,3300,15719,17.35
+Logistic Regression,DoS GoldenEye,1518,400,1118,26.35
+Logistic Regression,DoS slowloris,812,476,336,58.62
+Logistic Regression,DoS Hulk,26162,21386,4776,81.74
+Logistic Regression,DoS Slowhttptest,812,707,105,87.07
+Logistic Regression,Infiltration,1,1,0,100.0
+HistGradientBoosting,Heartbleed,1,0,1,0.0
+HistGradientBoosting,Web Attack - XSS,114,0,114,0.0
+HistGradientBoosting,Web Attack - SQL Injection,5,0,5,0.0
+HistGradientBoosting,Infiltration,1,0,1,0.0
+HistGradientBoosting,Web Attack - Brute Force,203,5,198,2.46
+HistGradientBoosting,Bot,335,54,281,16.12
+HistGradientBoosting,DoS Slowhttptest,812,715,97,88.05
+HistGradientBoosting,DoS GoldenEye,1518,1342,176,88.41
+HistGradientBoosting,DoS slowloris,812,721,91,88.79
+HistGradientBoosting,SSH-Patator,464,415,49,89.44
+HistGradientBoosting,FTP-Patator,800,748,52,93.5
+HistGradientBoosting,PortScan,8052,7799,253,96.86
+HistGradientBoosting,DoS Hulk,26162,25391,771,97.05
+HistGradientBoosting,DDoS,19019,18925,94,99.51
