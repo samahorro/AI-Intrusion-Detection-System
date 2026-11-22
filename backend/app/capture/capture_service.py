@@ -26,6 +26,24 @@ from .interface_service import (
 )
 
 
+def parse_tcp_flag(value):
+    """Parse TShark TCP flags in numeric or boolean-text form.
+
+    TShark may emit "True"/"False" or "1"/"0" depending on its
+    output settings/version. Preserve None for absent or invalid values
+    so an unknown ACK is never mistaken for an ACK=0 SYN attempt.
+    """
+    if value is None:
+        return None
+
+    normalized = str(value).strip().lower()
+    if normalized in ("1", "true"):
+        return True
+    if normalized in ("0", "false"):
+        return False
+    return None
+
+
 class CaptureService:
     def __init__(self):
         self.process = None
@@ -166,7 +184,7 @@ class CaptureService:
             }
 
     # ==================================================
-    # READ AND PROCESS CAPD PACKETS
+    # READ AND PROCESS CAPTURED PACKETS
     # ==================================================
 
     def _read_packets(self, process, generation):
@@ -259,18 +277,18 @@ class CaptureService:
                     "destination_port": (
                         tcp_dest or udp_dest or None
                     ),
-                    "tcp_syn": tcp_syn == "1",
+                    # TShark can emit True/False or 1/0.
+                    # Keep SYN/FIN/RST as booleans for the
+                    # existing flow-processing interface.
+                    "tcp_syn": parse_tcp_flag(tcp_syn) is True,
 
-                    # Missing ACK information remains
-                    # unknown instead of becoming False.
-                    "tcp_ack": (
-                        tcp_ack == "1"
-                        if tcp_ack in ("0", "1")
-                        else None
-                    ),
+                    # Unknown ACK values must remain None:
+                    # FlowBridge requires an explicit False
+                    # before counting a SYN as a scan attempt.
+                    "tcp_ack": parse_tcp_flag(tcp_ack),
 
-                    "tcp_fin": tcp_fin == "1",
-                    "tcp_rst": tcp_rst == "1",
+                    "tcp_fin": parse_tcp_flag(tcp_fin) is True,
+                    "tcp_rst": parse_tcp_flag(tcp_rst) is True,
                 }
 
                 # --------------------------------------
