@@ -1,3 +1,4 @@
+
 fastapi
 uvicorn
 httpx
@@ -7,3 +8,5 @@ itsdangerous
 pwdlib[argon2]
 ruff
 pytest-cov
+joblib
+scikit-learn
