@@ -89,6 +89,43 @@ export type ExperimentalPredictionsResponse = {
 };
 
 // ============================================================
+// Signature-Based Detection Alert Types
+// ============================================================
+
+/**
+ * Signature alert produced by the backend detection pipeline.
+ *
+ * These fields describe the anticipated /capture/alerts
+ * response and should be verified against the backend schema.
+ */
+export type SignatureAlert = {
+  event_type: string;
+  attack_type: string;
+  severity: "normal" | "low" | "medium" | "high";
+  detected: boolean;
+  reason: string;
+  rule_id: string;
+  source_ip: string;
+  destination_ip: string;
+  ports_scanned: number;
+  timestamp: string;
+  status: string;
+};
+
+/**
+ * Response from the live signature-alert endpoint.
+ *
+ * Backend endpoint:
+ * GET /capture/alerts
+ */
+export type SignatureAlertsResponse = {
+  status: string;
+  capture_running: boolean;
+  alert_count: number;
+  alerts: SignatureAlert[];
+};
+
+// ============================================================
 // API Request Helper
 // ============================================================
 
@@ -105,11 +142,30 @@ async function apiRequest<T>(
     if (response.status === 401) {
       reportSessionExpiry();
     }
-    // The experimental prediction API is not implemented in the current
-    // backend. Do not invent AI results or silently replace them with mocks.
-    if (response.status === 404 && path === "/capture/experimental-predictions") {
-      throw new Error("Experimental AI predictions are unavailable on this backend (HTTP 404). The backend/ML integration is still pending.");
+
+    // The experimental prediction API is not implemented in the
+    // current backend. Do not invent AI results or silently
+    // replace them with mocks.
+    if (
+      response.status === 404 &&
+      path === "/capture/experimental-predictions"
+    ) {
+      throw new Error(
+        "Experimental AI predictions are unavailable on this backend (HTTP 404). The backend/ML integration is still pending.",
+      );
     }
+
+    // Keep signature alert failures visible rather than
+    // displaying fabricated detection results.
+    if (
+      response.status === 404 &&
+      path === "/capture/alerts"
+    ) {
+      throw new Error(
+        "Live signature alerts are unavailable on this backend (HTTP 404).",
+      );
+    }
+
     const error = await response.json().catch(() => null);
 
     throw new Error(
@@ -127,6 +183,9 @@ async function apiRequest<T>(
 // ============================================================
 
 export const captureService = {
+  // ==========================================================
+  // Network Interfaces
+  // ==========================================================
 
   // Retrieve available network interfaces
   async getInterfaces() {
@@ -134,6 +193,10 @@ export const captureService = {
       "/capture/interfaces",
     );
   },
+
+  // ==========================================================
+  // Packet Capture Status and Statistics
+  // ==========================================================
 
   // Get current packet capture status
   async getStatus() {
@@ -189,6 +252,28 @@ export const captureService = {
   async getExperimentalPredictions() {
     return apiRequest<ExperimentalPredictionsResponse>(
       "/capture/experimental-predictions",
+    );
+  },
+
+  // ==========================================================
+  // Live Signature-Based Intrusion Detection Alerts
+  // ==========================================================
+
+  /**
+   * Retrieve real signature-based intrusion alerts from
+   * the backend capture and detection pipeline.
+   *
+   * Backend endpoint:
+   * GET /capture/alerts
+   *
+   * The dashboard will use this method to retrieve and
+   * display available security alerts.
+   *
+   * This method does not generate mock alerts.
+   */
+  async getSignatureAlerts() {
+    return apiRequest<SignatureAlertsResponse>(
+      "/capture/alerts",
     );
   },
 };
