@@ -6,6 +6,7 @@ import {
 } from "react";
 import { Link } from "react-router-dom";
 import { ProfileMenu } from "../components/ProfileMenu";
+import SignatureAlertsPanel from "../components/SignatureAlertsPanel";
 
 import {
   captureService,
@@ -1219,6 +1220,9 @@ export default function SecurityConsole() {
               </div>
             </section>
           </div>
+
+          {/* Live signature-based alerts from GET /capture/alerts */}
+          <SignatureAlertsPanel />
 
           <section
             ref={activitySectionRef}
