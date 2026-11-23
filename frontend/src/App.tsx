@@ -1,3 +1,4 @@
+
 import {
   useState,
   type PropsWithChildren,
@@ -84,12 +85,17 @@ function AuthenticatedLayout({
    * - Login
    * - Register
    * - Security Console
+   * - Account
    *
-   * The remaining authenticated pages use AppShell.
+   * These pages have their own layouts
+   * and do not need the shared AppShell header.
+   *
+   * Dashboard and Alerts continue using AppShell.
    */
   if (
     state.status !== "authenticated" ||
     pathname === "/console" ||
+    pathname === "/account" ||
     pathname === "/login" ||
     pathname === "/register"
   ) {
