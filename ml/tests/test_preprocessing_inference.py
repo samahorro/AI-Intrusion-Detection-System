@@ -134,3 +134,67 @@ def test_inference_returns_expected_output_structure():
     result = run_inference(model, features)
 
     assert "prediction" in result
+
+
+class FakeProbabilityModel:
+    """
+    Model with attack probabilities for testing.
+    """
+
+    classes_ = [0, 1]
+
+    def predict(self, samples):
+        return [1]
+
+    def predict_proba(self, samples):
+        return [[0.15, 0.85]]
+
+
+class FakeReversedProbabilityModel:
+    """
+    Verifies that attack-class column order is respected.
+    """
+
+    classes_ = [1, 0]
+
+    def predict(self, samples):
+        return [1]
+
+    def predict_proba(self, samples):
+        return [[0.90, 0.10]]
+
+
+def test_inference_returns_attack_probability():
+    model = FakeProbabilityModel()
+
+    features = [0.0] * len(REQUIRED_FEATURES)
+
+    result = run_inference(model, features)
+
+    assert result["prediction"] == 1
+    assert result["status"] == "success"
+    assert result["attack_probability"] == pytest.approx(0.85)
+
+
+def test_inference_respects_attack_class_order():
+    model = FakeReversedProbabilityModel()
+
+    features = [0.0] * len(REQUIRED_FEATURES)
+
+    result = run_inference(model, features)
+
+    assert result["attack_probability"] == pytest.approx(0.90)
+
+
+def test_inference_without_probability_is_backward_compatible():
+    model = FakeModel()
+
+    features = [0.0] * len(REQUIRED_FEATURES)
+
+    result = run_inference(model, features)
+
+    assert result == {
+        "prediction": "BENIGN",
+        "status": "success",
+    }
+

@@ -1,3 +1,4 @@
+
 import os
 from typing import Any
 
@@ -7,9 +8,16 @@ from pydantic import BaseModel, Field
 from ml.detection.signature_detection import detect_signature
 from ml.models.inference import load_model, run_inference
 from ml.preprocessing.flow_preprocessor import preprocess_flow
-from ml.scoring.threat_scoring import score_threat
+from ml.scoring.threat_scoring import (
+    combine_detection_confidence,
+    score_threat,
+)
 
 from ..auth.dependencies import require_authenticated_user
+
+# --------------------------------------------------
+# DETECTION API ROUTER
+# --------------------------------------------------
 
 router = APIRouter(
     prefix="/detection",
@@ -20,10 +28,18 @@ router = APIRouter(
 )
 
 
+# --------------------------------------------------
+# REQUEST MODEL
+# --------------------------------------------------
+
 class DetectionRequest(BaseModel):
     flow: dict[str, Any]
     event: dict[str, Any] = Field(default_factory=dict)
 
+
+# --------------------------------------------------
+# LOAD CONFIGURED ML MODEL
+# --------------------------------------------------
 
 def get_detection_model():
     """Load the configured ML model."""
@@ -46,24 +62,61 @@ def get_detection_model():
         ) from exc
 
 
+# --------------------------------------------------
+# NORMALIZE ML PREDICTION
+# --------------------------------------------------
+
 def prediction_is_attack(prediction: Any) -> bool:
-    """Normalize model predictions into attack or normal."""
+    """
+    Normalize recognized binary predictions.
+
+    Reject unknown labels rather than treating them
+    as confirmed attacks.
+    """
 
     if isinstance(prediction, str):
         normalized = prediction.strip().lower()
 
-        return normalized not in {
+        if normalized in {
             "0",
             "false",
             "normal",
             "benign",
-        }
+        }:
+            return False
 
-    return bool(prediction)
+        if normalized in {
+            "1",
+            "true",
+            "attack",
+            "malicious",
+            "intrusion",
+        }:
+            return True
 
+        raise ValueError(
+            f"Unrecognized model prediction: {prediction!r}"
+        )
+
+    if isinstance(prediction, bool):
+        return prediction
+
+    if isinstance(prediction, int) and prediction in (0, 1):
+        return bool(prediction)
+
+    raise ValueError(
+        f"Unsupported model prediction: {prediction!r}"
+    )
+
+
+# --------------------------------------------------
+# SIGNATURE SEVERITY MAPPING
+# --------------------------------------------------
 
 def severity_confidence(severity: str) -> float:
-    """Convert signature severity to scoring confidence."""
+    """
+    Convert signature severity into scoring confidence.
+    """
 
     confidence_map = {
         "normal": 0.0,
@@ -75,6 +128,10 @@ def severity_confidence(severity: str) -> float:
     return confidence_map.get(severity, 0.0)
 
 
+# --------------------------------------------------
+# DETECTION AND THREAT SCORING ENDPOINT
+# --------------------------------------------------
+
 @router.post("/analyze")
 def analyze_network_flow(
     data: DetectionRequest,
@@ -82,8 +139,19 @@ def analyze_network_flow(
 ):
     """
     Run preprocessing, ML inference, signature detection,
-    and threat scoring.
+    and combined threat scoring.
+
+    The final score uses the stronger available evidence
+    from either ML inference or signature detection.
+
+    Invalid inputs are handled with HTTP 400 responses.
+
+    Existing API response fields are preserved.
     """
+
+    # -----------------------------------------------
+    # STEP 1 - PREPROCESS AND DETECT
+    # -----------------------------------------------
 
     try:
         features = preprocess_flow(data.flow)
@@ -103,34 +171,92 @@ def analyze_network_flow(
             detail=str(exc),
         ) from exc
 
-    model_detected = prediction_is_attack(
-        inference_result["prediction"]
-    )
+    # -----------------------------------------------
+    # STEP 2 - VALIDATE AND SCORE DETECTION RESULTS
+    # -----------------------------------------------
 
-    signature_detected = signature_result["detected"]
+    try:
+        # -------------------------------------------
+        # DETERMINE DETECTION STATUS
+        # -------------------------------------------
 
-    detected = model_detected or signature_detected
-
-    if signature_detected:
-        attack_type = signature_result["attack_type"]
-
-        confidence = severity_confidence(
-            signature_result["severity"]
+        model_detected = prediction_is_attack(
+            inference_result["prediction"]
         )
 
-    elif model_detected:
-        attack_type = "ml_detected"
-        confidence = 1.0
+        signature_detected = signature_result["detected"]
 
-    else:
-        attack_type = None
-        confidence = 0.0
+        detected = model_detected or signature_detected
 
-    threat_result = score_threat(
-        detected=detected,
-        confidence=confidence,
-        attack_type=attack_type,
-    )
+        # -------------------------------------------
+        # CALCULATE ML CONFIDENCE
+        # -------------------------------------------
+
+        if model_detected:
+            # Use probability when available.
+            # Preserve the fallback for models
+            # without predict_proba().
+            ml_confidence = inference_result.get(
+                "attack_probability",
+                1.0,
+            )
+        else:
+            ml_confidence = 0.0
+
+        # -------------------------------------------
+        # CALCULATE SIGNATURE CONFIDENCE
+        # -------------------------------------------
+
+        if signature_detected:
+            signature_confidence = severity_confidence(
+                signature_result["severity"]
+            )
+        else:
+            signature_confidence = 0.0
+
+        # -------------------------------------------
+        # COMBINE DETECTION EVIDENCE
+        # -------------------------------------------
+
+        confidence = combine_detection_confidence(
+            ml_detected=model_detected,
+            ml_confidence=ml_confidence,
+            signature_detected=signature_detected,
+            signature_confidence=signature_confidence,
+        )
+
+        # -------------------------------------------
+        # IDENTIFY ATTACK TYPE
+        # -------------------------------------------
+
+        if signature_detected:
+            attack_type = signature_result["attack_type"]
+
+        elif model_detected:
+            attack_type = "ml_detected"
+
+        else:
+            attack_type = None
+
+        # -------------------------------------------
+        # PRODUCE FINAL THREAT SCORE
+        # -------------------------------------------
+
+        threat_result = score_threat(
+            detected=detected,
+            confidence=confidence,
+            attack_type=attack_type,
+        )
+
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    # -----------------------------------------------
+    # STEP 3 - RETURN DETECTION RESULTS
+    # -----------------------------------------------
 
     return {
         "status": "success",
