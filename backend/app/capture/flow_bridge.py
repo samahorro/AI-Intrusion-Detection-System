@@ -5,6 +5,7 @@ Provides:
 - Packet validation and normalization
 - Flow tracking and ML feature preparation
 - Signature-based port-scan detection
+- Sprint 5 threat scoring and classification
 - Bounded, in-memory security alerts
 """
 
@@ -23,6 +24,7 @@ from ml.preprocessing.flow_preprocessor import (
     REQUIRED_FEATURES,
     preprocess_flow,
 )
+from ml.scoring.threat_scoring import score_threat
 
 
 class FlowBridge:
@@ -113,7 +115,10 @@ class FlowBridge:
     # ==================================================
 
     def _evaluate_port_scan(self, packet):
-        """Evaluate TCP SYN traffic and generate deduplicated alerts.
+        """Evaluate TCP SYN traffic and generate scored alerts.
+
+        Alerts are deduplicated by source and destination
+        within a 60-second suppression window.
 
         Called while the FlowBridge lock is held.
         """
@@ -166,15 +171,54 @@ class FlowBridge:
             if 0 <= elapsed < 60:
                 return
 
-        # Structured signature-based security alert.
+        # ==================================================
+        # SPRINT 5: THREAT SCORING AND CLASSIFICATION
+        # ==================================================
+
+        # Map signature severity to the same confidence
+        # values used by the Sprint 5 detection endpoint.
+        #
+        # This is rule-based confidence, not the
+        # probability returned by a machine-learning model.
+        signature_confidence = {
+            "normal": 0.0,
+            "low": 0.3,
+            "medium": 0.6,
+            "high": 0.9,
+        }.get(detection["severity"], 0.0)
+
+        # Use the existing centralized threat-scoring
+        # function instead of calculating the final
+        # threat score independently in FlowBridge.
+        threat_result = score_threat(
+            detected=detection["detected"],
+            confidence=signature_confidence,
+            attack_type=detection["attack_type"],
+        )
+
+        # ==================================================
+        # BUILD STRUCTURED SIGNATURE SECURITY ALERT
+        # ==================================================
+
+        # Preserve all existing PortScanTracker fields:
+        # detected, attack_type, severity, reason,
+        # rule_id, source_ip, destination_ip,
+        # ports_scanned, and timestamp.
+        #
+        # Add threat scoring fields for the frontend.
         alert = {
             **detection,
             "event_type": "signature_detection",
             "status": "new",
+            "threat_score": threat_result["threat_score"],
+            "classification": threat_result["classification"],
+            "detection_method": "signature",
         }
 
+        # Store the scored alert in bounded memory.
         self._alerts.append(alert)
 
+        # Record this alert for duplicate suppression.
         self._alert_times.append(
             (
                 timestamp,
@@ -262,6 +306,7 @@ class FlowBridge:
             self._store_completed(completed)
 
             # Evaluate captured packets for port scanning.
+            # New alerts also receive threat scores.
             self._evaluate_port_scan(normalized)
 
         return True
@@ -313,7 +358,12 @@ class FlowBridge:
     # ==================================================
 
     def get_alerts(self):
-        """Return generated security alerts, newest first."""
+        """Return generated security alerts, newest first.
+
+        Each newly generated signature alert includes
+        the threat score, classification, and
+        detection method.
+        """
 
         with self._lock:
             return list(reversed(self._alerts))
