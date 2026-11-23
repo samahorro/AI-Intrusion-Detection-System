@@ -4,7 +4,6 @@ from fastapi import HTTPException
 
 from backend.app.detection import routes
 
-
 # --------------------------------------------------
 # MODEL LOADING ERROR HANDLING
 # --------------------------------------------------

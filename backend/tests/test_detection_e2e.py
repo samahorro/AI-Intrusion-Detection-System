@@ -1,7 +1,6 @@
 
 import pickle
 
-
 # --------------------------------------------------
 # TEST MODELS
 # --------------------------------------------------
@@ -21,7 +20,7 @@ class ProbabilityAttackModel:
     Lightweight model for testing ML probability-based scoring.
     """
 
-    classes_ = [0, 1]
+    classes_ = (0, 1)
 
     def predict(self, samples):
         return [1 for _ in samples]
@@ -35,7 +34,7 @@ class LowerProbabilityAttackModel:
     Lightweight model with lower attack probability.
     """
 
-    classes_ = [0, 1]
+    classes_ = (0, 1)
 
     def predict(self, samples):
         return [1 for _ in samples]
@@ -63,7 +62,7 @@ class InvalidProbabilityAttackModel:
     attack probability greater than 1.0.
     """
 
-    classes_ = [0, 1]
+    classes_ = (0, 1)
 
     def predict(self, samples):
         return [1 for _ in samples]

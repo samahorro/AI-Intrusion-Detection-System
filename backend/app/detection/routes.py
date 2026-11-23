@@ -15,7 +15,6 @@ from ml.scoring.threat_scoring import (
 
 from ..auth.dependencies import require_authenticated_user
 
-
 # --------------------------------------------------
 # DETECTION API ROUTER
 # --------------------------------------------------
